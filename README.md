@@ -8,7 +8,7 @@ MakerBuddy V1.0 is an all-in-one IoT learning platform that combines multiple se
 
 - **[Web Dashboard](./Web%20Dashboard/)** - Modern, responsive web interface for real-time sensor monitoring and device control
 - **[Arduino Code](./Arduino%20Code/)** - ESP32 firmware with sensor integration and web server
-- **[PCB Design](./PCB%20Design/)** - Hardware design files (Coming Soon)
+- **[PCB Design](./PCB%20Design/)** - PCB design files (Fritzing `.fzz`)
 
 ## ✨ Features
 
@@ -35,7 +35,6 @@ MakerBuddy V1.0 is an all-in-one IoT learning platform that combines multiple se
 - Automation rules engine (IF-THEN logic)
 - WiFi connectivity
 - REST API endpoints
-- Dark/Light theme support
 - Mobile-responsive interface
 - Device information display
 
@@ -63,7 +62,7 @@ MakerBuddy V1.0 is an all-in-one IoT learning platform that combines multiple se
 3. **Setup Web Dashboard**
    - Copy the `Web Dashboard` folder to your web server
    - Open `index.html` in your browser
-   - Enter your ESP32's IP address to connect
+   - Enter your MakerBuddy IoT Kit ESP32's IP address to connect
 
 ## 📖 Documentation
 
@@ -79,7 +78,7 @@ Detailed documentation for each component can be found in their respective folde
 - 2x 15-Pin Female Headers
 - 2x 15-Pin Male headers (Optional)
 - 2x 5-Pin Male headers (Optional)
-- 1x Capactior 5v(680uF)
+- 1x Capactior 10v(680uF)
 - 7x 3Pin 2.54MM JST Connectors (Male/Female Both)
 - 5x 4Pin 2.54MM JST Connectors (Male/Female Both)
 - 1x Resistor 10K for LDR
