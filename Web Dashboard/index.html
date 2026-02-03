@@ -1,0 +1,1647 @@
+<!DOCTYPE html>
+<!--
+  MakerBuddy V1.0 - Web Dashboard
+
+  Copyright (C) 2024 Muhammad Afzal
+  Website: https://makerbuddy.cc
+  Email: info@makerbuddy.cc
+  Version: 1.0
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program. If not, see <https://www.gnu.org/licenses/>.
+-->
+<html lang="en">
+<head>
+
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-G8RMWC75QG"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-G8RMWC75QG');
+</script>
+
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MakerBuddy Web App Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+</head>
+<body>
+    <!-- Sidebar Toggle Button -->
+    <button class="sidebar-toggle" id="sidebarToggle">✕</button>
+
+    <!-- Mobile Backdrop -->
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">
+                <img src="images/logo.png" alt="MakerBuddy Logo">
+            </div>
+            <div style="text-align: center; margin: 10px 0;">
+                <a href="https://makerbuddy.cc" target="_blank" style="display: inline-block; margin: 0 8px; color: #2196F3; text-decoration: none; font-weight: bold; font-size: 13px;">Home Page</a>
+                <a href="https://www.makerbuddy.cc/curriculum" target="_blank" style="display: inline-block; margin: 0 8px; color: #2196F3; text-decoration: none; font-weight: bold; font-size: 13px;">Getting Started</a>
+            </div>
+
+            <button class="theme-toggle" id="themeToggle">
+                <span id="themeIcon">🌙</span>
+                <span id="themeText">Dark</span>
+            </button>
+        </div>
+
+        <div class="sidebar-section">
+            <h3 class="sidebar-title">Connection</h3>
+            <input type="text" id="ipInput" placeholder="IP Address" class="sidebar-input">
+            <button class="btn btn-primary" id="connectBtn" style="width: 100%; margin-top: 10px;">🔌 Connect</button>
+            <button class="btn btn-danger hidden" id="disconnectBtn" style="width: 100%; margin-top: 10px;">❌ Disconnect</button>
+        </div>
+
+        <div class="sidebar-section device-info hidden" id="deviceInfo">
+            <h3 class="sidebar-title">Device Info</h3>
+            <div class="info-row">
+                <span class="info-label">Device:</span>
+                <span class="info-value" id="deviceName">--</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">MAC:</span>
+                <span class="info-value" id="macAddress">--</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Uptime:</span>
+                <span class="info-value" id="deviceUptime">--</span>
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <h3 class="sidebar-title">Status</h3>
+            <div class="status-display">
+                <span class="status-indicator" id="statusIndicator"></span>
+                <div>
+                    <div class="status-text" id="connectionStatus">Not Connected</div>
+                    <div class="status-text" style="font-size: 12px;">
+                        <span id="lastUpdate">Never</span> • <span id="uptime">0s</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="sidebar-section" style="margin-top: auto; padding-top: 20px;">
+            <div class="social-links">
+                <a href="https://www.youtube.com/@makerbuddycc" target="_blank" title="YouTube"><i class="bi bi-youtube"></i></a>
+                <a href="https://github.com/MakerBuddy" target="_blank" title="GitHub"><i class="bi bi-github"></i></a>
+                <a href="https://www.facebook.com/makerbuddycc" target="_blank" title="Facebook"><i class="bi bi-facebook"></i></a>
+                <a href="https://www.linkedin.com/company/makerbuddy/" target="_blank" title="LinkedIn"><i class="bi bi-linkedin"></i></a>
+                <a href="https://www.hackster.io/makerbuddy" target="_blank" title="Hackster.io"><i class="bi bi-laptop"></i></a>
+                <a href="https://www.patreon.com/cw/MakerBuddy" target="_blank" title="Patreon"><i class="bi bi-heart-fill"></i></a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container" id="mainContent">
+
+        <!-- Tab Navigation -->
+        <div id="tabNavigation" class="hidden" style="margin-bottom: 20px;">
+            <div class="tab-buttons">
+                <button class="tab-btn active" data-tab="dashboard">📊 Dashboard</button>
+                <button class="tab-btn" data-tab="settings">⚙️ Settings</button>
+            </div>
+        </div>
+
+        <!-- Dashboard Tab -->
+        <div id="dashboardTab" class="tab-content hidden">
+
+            <!-- Sensor Cards Grid (5 columns) -->
+            <div class="grid-5 mb-20" id="sensorsGrid">
+                <!-- Temperature DHT -->
+                <div class="sensor-card" data-sensor="temp_dht">
+                    <div class="sensor-icon">🌡️</div>
+                    <div class="sensor-label">Temperature (DHT)</div>
+                    <div class="sensor-value" id="temperature">--</div>
+                    <div class="sensor-unit">°C</div>
+                </div>
+
+                <!-- Humidity -->
+                <div class="sensor-card" data-sensor="humidity">
+                    <div class="sensor-icon">💧</div>
+                    <div class="sensor-label">Humidity</div>
+                    <div class="sensor-value" id="humidity">--</div>
+                    <div class="sensor-unit">%</div>
+                </div>
+
+                <!-- Temperature DS18B20 -->
+                <div class="sensor-card" data-sensor="temp_ds18b20">
+                    <div class="sensor-icon">🌡️</div>
+                    <div class="sensor-label">Temperature (DS18B20)</div>
+                    <div class="sensor-value" id="ds18b20Temp">--</div>
+                    <div class="sensor-unit">°C</div>
+                </div>
+
+                <!-- Light Level -->
+                <div class="sensor-card" data-sensor="light">
+                    <div class="sensor-icon">💡</div>
+                    <div class="sensor-label">Light Level</div>
+                    <div class="sensor-value" id="lightLevel">--</div>
+                    <div class="sensor-unit">%</div>
+                </div>
+
+                <!-- Gas Level -->
+                <div class="sensor-card" data-sensor="gas">
+                    <div class="sensor-icon">💨</div>
+                    <div class="sensor-label">Gas Level (MQ-2)</div>
+                    <div class="sensor-value" id="gasLevel">--</div>
+                    <div class="sensor-unit">%</div>
+                </div>
+
+                <!-- Soil Moisture -->
+                <div class="sensor-card" data-sensor="soil">
+                    <div class="sensor-icon">🌱</div>
+                    <div class="sensor-label">Soil Moisture</div>
+                    <div class="sensor-value" id="soilMoisture">--</div>
+                    <div class="sensor-unit">%</div>
+                </div>
+
+                <!-- Potentiometer -->
+                <div class="sensor-card" data-sensor="pot">
+                    <div class="sensor-icon">🎚️</div>
+                    <div class="sensor-label">Potentiometer</div>
+                    <div class="sensor-value" id="potValue">--</div>
+                    <div class="sensor-unit">%</div>
+                </div>
+
+                <!-- Distance CM -->
+                <div class="sensor-card" data-sensor="distance">
+                    <div class="sensor-icon">📏</div>
+                    <div class="sensor-label">Distance</div>
+                    <div class="sensor-value" id="distanceCm">--</div>
+                    <div class="sensor-unit">cm</div>
+                </div>
+
+                <!-- Motion Sensor -->
+                <div class="sensor-card" data-sensor="motion">
+                    <div class="sensor-icon">🚶</div>
+                    <div class="sensor-label">Motion Sensor</div>
+                    <div class="sensor-value" id="motionStatus" style="font-size: 20px;">No Motion</div>
+                </div>
+
+                <!-- Push Button -->
+                <div class="sensor-card" data-sensor="button">
+                    <div class="sensor-icon">🔘</div>
+                    <div class="sensor-label">Push Button</div>
+                    <div class="sensor-value" id="buttonStatus" style="font-size: 20px;">Released</div>
+                </div>
+            </div>
+
+            <!-- Control Cards Grid (3 columns for LED/RGB controls) -->
+            <div class="grid-4 mb-20">
+                <!-- LED Control -->
+                <div class="control-card card-customizable" data-card-id="led" id="ledControlCard">
+                    <div class="control-header">
+                        <div class="control-icon">💡</div>
+                        <div class="control-title">LED Control</div>
+                    </div>
+                    <div class="automation-warning hidden" id="ledWarning">
+                        <span style="font-size: 20px;">⚠️</span>
+                        <span>This actuator is controlled by automation rules. Manual control is disabled.</span>
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">Power</label>
+                        <div class="control-row">
+                            <label class="switch">
+                                <input type="checkbox" id="ledSwitch">
+                                <span class="slider"></span>
+                            </label>
+                            <span>LED On/Off</span>
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">Brightness (PWM)</label>
+                        <input type="range" class="range-slider" id="ledPWM" min="0" max="255" value="255">
+                        <div class="range-value">PWM: <span id="pwmValue">255</span></div>
+                    </div>
+                </div>
+
+                <!-- RGB LED Control -->
+                <div class="control-card card-customizable" data-card-id="rgb" id="rgbControlCard">
+                    <div class="control-header">
+                        <div class="control-icon">🎨</div>
+                        <div class="control-title">RGB LED</div>
+                    </div>
+                    <div class="automation-warning hidden" id="rgbWarning">
+                        <span style="font-size: 20px;">⚠️</span>
+                        <span>This actuator is controlled by automation rules. Manual control is disabled.</span>
+                    </div>
+                    <div class="color-preview" id="colorPreview"></div>
+                    <div class="rgb-controls">
+                        <div class="rgb-control">
+                            <label>Red</label>
+                            <input type="range" class="range-slider" id="rgbR" min="0" max="255" value="0">
+                            <input type="number" class="rgb-number-input" id="rgbRNum" min="0" max="255" value="0">
+                        </div>
+                        <div class="rgb-control">
+                            <label>Green</label>
+                            <input type="range" class="range-slider" id="rgbG" min="0" max="255" value="0">
+                            <input type="number" class="rgb-number-input" id="rgbGNum" min="0" max="255" value="0">
+                        </div>
+                        <div class="rgb-control">
+                            <label>Blue</label>
+                            <input type="range" class="range-slider" id="rgbB" min="0" max="255" value="0">
+                            <input type="number" class="rgb-number-input" id="rgbBNum" min="0" max="255" value="0">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Relay Control -->
+                <div class="control-card card-customizable" data-card-id="relay" id="relayControlCard">
+                    <div class="control-header">
+                        <div class="control-icon">⚡</div>
+                        <div class="control-title">Relay</div>
+                    </div>
+                    <div class="automation-warning hidden" id="relayWarning">
+                        <span style="font-size: 20px;">⚠️</span>
+                        <span>This actuator is controlled by automation rules. Manual control is disabled.</span>
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">Power Control</label>
+                        <div class="control-row">
+                            <label class="switch">
+                                <input type="checkbox" id="relaySwitch">
+                                <span class="slider"></span>
+                            </label>
+                            <span>Relay On/Off</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Potentiometer Mapping Control -->
+                <div class="control-card card-customizable" data-card-id="potmapping">
+                    <div class="control-header">
+                        <div class="control-icon">🎚️</div>
+                        <div class="control-title">Potentiometer Mapping</div>
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">Map Potentiometer To:</label>
+                        <div style="margin-bottom: 10px;">
+                            <label style="display: flex; align-items: center; margin-bottom: 8px;">
+                                <input type="radio" name="potMapping" value="none" checked>
+                                <span style="margin-left: 8px; font-size: 13px;">None</span>
+                            </label>
+                            <label style="display: flex; align-items: center; margin-bottom: 8px;">
+                                <input type="radio" name="potMapping" value="led">
+                                <span style="margin-left: 8px; font-size: 13px;">LED PWM</span>
+                            </label>
+                            <label style="display: flex; align-items: center; margin-bottom: 8px;">
+                                <input type="radio" name="potMapping" value="rgb">
+                                <span style="margin-left: 8px; font-size: 13px;">RGB LED</span>
+                            </label>
+                            <label style="display: flex; align-items: center;">
+                                <input type="radio" name="potMapping" value="servo">
+                                <span style="margin-left: 8px; font-size: 13px;">Servo</span>
+                            </label>
+                        </div>
+                        <div style="background: var(--bg-secondary); padding: 10px; border-radius: 6px; border-left: 3px solid #2196F3; font-size: 12px;">
+                            <div style="color: var(--text-secondary);">
+                                <strong>Mapping:</strong> <span id="currentMapping">None</span><br>
+                                <strong>Value:</strong> <span id="mappedPotValue">0</span>% → <span id="mappedOutputValue">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Servo, Buzzer, and LCD Grid (3 columns) -->
+            <div class="grid-3 mb-20">
+                <!-- Servo Control -->
+                <div class="control-card card-customizable" data-card-id="servo" id="servoControlCard">
+                    <div class="control-header">
+                        <div class="control-icon">🔧</div>
+                        <div class="control-title">Servo Motor</div>
+                    </div>
+                    <div class="automation-warning hidden" id="servoWarning">
+                        <span style="font-size: 20px;">⚠️</span>
+                        <span>This actuator is controlled by automation rules. Manual control is disabled.</span>
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">Position (0° - 180°)</label>
+                        <input type="range" class="range-slider" id="servoSlider" min="0" max="180" value="90">
+                        <div class="text-center">
+                            <span class="sensor-value" id="servoPosition">90</span>
+                            <span class="sensor-unit">°</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Buzzer Control -->
+                <div class="control-card card-customizable" data-card-id="buzzer" id="buzzerControlCard">
+                    <div class="control-header">
+                        <div class="control-icon">🔊</div>
+                        <div class="control-title">Buzzer</div>
+                    </div>
+                    <div class="automation-warning hidden" id="buzzerWarning">
+                        <span style="font-size: 20px;">⚠️</span>
+                        <span>This actuator is controlled by automation rules. Manual control is disabled.</span>
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">Sound Alert</label>
+                        <button class="btn btn-primary" id="buzzerBtn" style="width: 100%;">🔊 Activate Buzzer</button>
+                    </div>
+                </div>
+
+                <!-- LCD Control -->
+                <div class="control-card card-customizable" data-card-id="lcd" id="lcdControlCard">
+                    <div class="control-header">
+                        <div class="control-icon">📺</div>
+                        <div class="control-title">LCD Display</div>
+                    </div>
+                    <div class="automation-warning hidden" id="lcdWarning">
+                        <span style="font-size: 20px;">⚠️</span>
+                        <span>This actuator is controlled by automation rules. Manual control is disabled.</span>
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">Display Mode</label>
+                        <div class="control-row" style="margin-bottom: 10px;">
+                            <label style="display: flex; align-items: center;">
+                                <input type="radio" name="lcdMode" value="default" checked>
+                                <span style="margin-left: 8px; font-size: 13px;">Default</span>
+                            </label>
+                            <label style="display: flex; align-items: center; margin-left: 15px;">
+                                <input type="radio" name="lcdMode" value="custom">
+                                <span style="margin-left: 8px; font-size: 13px;">Custom</span>
+                            </label>
+                        </div>
+                        <div class="control-group hidden" id="customTextGroup">
+                            <input type="text" id="customLcdText1" maxlength="16" placeholder="e.g., Temp: {temp}C" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); margin-bottom: 8px; font-size: 13px;">
+                            <input type="text" id="customLcdText2" maxlength="16" placeholder="e.g., Humid: {humidity}%" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); margin-bottom: 8px; font-size: 13px;">
+                            <div style="background: var(--bg-secondary); padding: 10px; border-radius: 8px; margin-bottom: 8px; font-size: 11px; color: var(--text-secondary); line-height: 1.4;">
+                                <strong>💡 Wildcards:</strong> {temp}, {humidity}, {ds18b20}, {light}, {gas}, {soil}, {distance}, {pot}, {motion}, {button}
+                            </div>
+                            <button class="btn btn-primary" id="updateLcdBtn" style="width: 100%; padding: 8px; font-size: 13px;">📝 Update</button>
+                        </div>
+                        <div class="lcd-preview" style="margin-top: 10px;">
+                            <div class="lcd-line" id="lcdLine1" style="font-size: 13px;">MakerBuddy Kit</div>
+                            <div class="lcd-line" id="lcdLine2" style="font-size: 13px;">Ready...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add Rule Card -->
+            <div class="control-card mb-20">
+                <div class="control-header">
+                    <div class="control-icon">➕</div>
+                    <div class="control-title">Add Automation Rule</div>
+                </div>
+                <form id="ruleForm">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Rule Name</label>
+                            <input type="text" name="name" placeholder="e.g., Temperature Alert" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Sensor</label>
+                            <select name="condition" required>
+                                <option value="temperature">Temperature (DHT11)</option>
+                                <option value="humidity">Humidity (DHT11)</option>
+                                <option value="ds18b20Temp">Temperature Probe (DS18B20)</option>
+                                <option value="lightLevel">Light Level (LDR)</option>
+                                <option value="gasLevel">Gas Level (MQ2)</option>
+                                <option value="soilMoisture">Soil Moisture</option>
+                                <option value="distance">Distance (HC-SR04)</option>
+                                <option value="potValue">Potentiometer</option>
+                                <option value="motionDetected">Motion Sensor(HC-SR501)</option>
+                                <option value="buttonPressed">Push Button</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Operator</label>
+                            <select name="operator" required>
+                                <option value=">">Greater than (>)</option>
+                                <option value="<">Less than (<)</option>
+                                <option value=">=">Greater or equal (>=)</option>
+                                <option value="<=">Less or equal (<=)</option>
+                                <option value="==">Equal to (==)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Threshold</label>
+                            <input type="number" name="threshold" step="0.1" placeholder="25.0" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Action</label>
+                            <select name="actionType" id="actionTypeSelect" required>
+                                <option value="led_on">LED On</option>
+                                <option value="led_off">LED Off</option>
+                                <option value="buzzer_on">Buzzer</option>
+                                <option value="servo_move">Servo</option>
+                                <option value="relay_on">Relay On</option>
+                                <option value="relay_off">Relay Off</option>
+                                <option value="rgb_red">RGB Red</option>
+                                <option value="rgb_green">RGB Green</option>
+                                <option value="rgb_blue">RGB Blue</option>
+                                <option value="rgb_white">RGB White</option>
+                                <option value="rgb_yellow">RGB Yellow</option>
+                                <option value="rgb_purple">RGB Purple</option>
+                                <option value="rgb_cyan">RGB Cyan</option>
+                                <option value="rgb_off">RGB Off</option>
+                                <option value="lcd_display">LCD Display</option>
+                            </select>
+                        </div>
+                        <div class="form-group hidden" id="actionValueGroup">
+                            <label>Servo Angle (0-180°)</label>
+                            <input type="number" name="actionValue" min="0" max="180" value="90" placeholder="90">
+                        </div>
+                        <div class="form-group hidden" id="lcdTextGroup" style="grid-column: 1 / -1;">
+                            <label>LCD Display Mode</label>
+                            <select name="lcdMode" id="lcdModeSelect" style="padding: 10px; border-radius: 8px; border: 2px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 14px; margin-bottom: 15px;">
+                                <option value="default">Default (Sensor Data)</option>
+                                <option value="custom" selected>Custom Text</option>
+                            </select>
+                            <div id="lcdCustomInputs">
+                                <label>LCD Line 1 (max 16 chars)</label>
+                                <input type="text" name="lcdText1" id="lcdText1Input" maxlength="16" placeholder="e.g., Temp: {temp}C">
+                                <label style="margin-top: 10px;">LCD Line 2 (max 16 chars)</label>
+                                <input type="text" name="lcdText2" id="lcdText2Input" maxlength="16" placeholder="e.g., Humid: {humidity}%">
+                                <div style="background: var(--bg-secondary); padding: 12px; border-radius: 8px; margin-top: 10px; font-size: 12px; color: var(--text-secondary);">
+                                    <strong>💡 Wildcards:</strong> {temp}, {humidity}, {ds18b20}, {light}, {gas}, {soil}, {distance}, {pot}, {motion}, {button}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">➕ Add Rule</button>
+                </form>
+            </div>
+
+            <!-- Rules Table Card -->
+            <div class="control-card">
+                <div class="control-header">
+                    <div class="control-icon">🤖</div>
+                    <div class="control-title">Automation Rules</div>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Condition</th>
+                                <th>Operator</th>
+                                <th>Threshold</th>
+                                <th>Action</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rulesTableBody">
+                            <tr>
+                                <td colspan="7">
+                                    <div class="empty-state">
+                                        <div class="empty-state-icon">🤖</div>
+                                        <p>No automation rules created yet</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Tab -->
+        <div id="settingsTab" class="tab-content hidden">
+
+            <!-- OTA Update Card -->
+            <div class="control-card mb-20">
+                <div class="control-header">
+                    <div class="control-icon">🔄</div>
+                    <div class="control-title">Firmware Update (OTA)</div>
+                </div>
+                <div class="control-group">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                        <div style="background: var(--bg-secondary); padding: 16px; border-radius: 12px; border: 1px solid var(--border-color);">
+                            <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 8px;">Current Version</div>
+                            <div style="font-size: 24px; font-weight: 700; color: var(--primary-color);" id="currentVersion">--</div>
+                        </div>
+                        <div style="background: var(--bg-secondary); padding: 16px; border-radius: 12px; border: 1px solid var(--border-color);">
+                            <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 8px;">Latest Version</div>
+                            <div style="font-size: 24px; font-weight: 700; color: var(--success-color);" id="latestVersion">--</div>
+                        </div>
+                        <div style="background: var(--bg-secondary); padding: 16px; border-radius: 12px; border: 1px solid var(--border-color);">
+                            <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 8px;">Release Date</div>
+                            <div style="font-size: 16px; font-weight: 600; color: var(--text-primary);" id="releaseDate">--</div>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 12px;">
+                        <button class="btn btn-success hidden" id="installUpdateBtn" style="flex: 1; background: var(--success-color); font-size: 16px; padding: 14px;">⬇️ Install Update</button>
+                    </div>
+                    <div id="updateStatus" style="margin-top: 15px; padding: 14px; border-radius: 10px; font-size: 14px; background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-secondary);">
+                        Checking for updates...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Card -->
+            <div class="control-card">
+                <div class="control-header">
+                    <div class="control-icon">⚙️</div>
+                    <div class="control-title">Dashboard Settings</div>
+                </div>
+                <div class="control-group">
+                    <h4 style="margin-bottom: 15px; color: var(--text-primary);">Sensor Cards Settings</h4>
+                    <div class="table-container" style="margin-bottom: 25px;">
+                        <table id="sensorSettingsTable">
+                            <thead>
+                                <tr>
+                                    <th style="width: 30%;">Sensor</th>
+                                    <th style="width: 15%; text-align: center;">Enabled</th>
+                                    <th style="width: 27.5%;">Background Color</th>
+                                    <th style="width: 27.5%;">Accent Color</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>🌡️ Temperature (DHT)</strong></td>
+                                    <td style="text-align: center;"><input type="checkbox" class="sensor-toggle" data-sensor="temp_dht" checked></td>
+                                    <td><input type="color" class="sensor-bg-color" data-sensor="temp_dht" value="#ffffff" style="width: 100%; height: 36px; border-radius: 6px; border: 1px solid var(--border-color); cursor: pointer;"></td>
+                                    <td><input type="color" class="sensor-accent-color" data-sensor="temp_dht" value="#2563eb" style="width: 100%; height: 36px; border-radius: 6px; border: 1px solid var(--border-color); cursor: pointer;"></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>💧 Humidity</strong></td>
+                                    <td style="text-align: center;"><input type="checkbox" class="sensor-toggle" data-sensor="humidity" checked></td>
+                                    <td><input type="color" class="sensor-bg-color" data-sensor="humidity" value="#ffffff" style="width: 100%; height: 36px; border-radius: 6px; border: 1px solid var(--border-color); cursor: pointer;"></td>
+                                    <td><input type="color" class="sensor-accent-color" data-sensor="humidity" value="#2563eb" style="width: 100%; height: 36px; border-radius: 6px; border: 1px solid var(--border-color); cursor: pointer;"></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>🌡️ Temperature (DS18B20)</strong></td>
+                                    <td style="text-align: center;"><input type="checkbox" class="sensor-toggle" data-sensor="temp_ds18b20" checked></td>
+                                    <td><input type="color" class="sensor-bg-color" data-sensor="temp_ds18b20" value="#ffffff" style="width: 100%; height: 36px; border-radius: 6px; border: 1px solid var(--border-color); cursor: pointer;"></td>
+                                    <td><input type="color" class="sensor-accent-color" data-sensor="temp_ds18b20" value="#2563eb" style="width: 100%; height: 36px; border-radius: 6px; border: 1px solid var(--border-color); cursor: pointer;"></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>💡 Light Level</strong></td>
+                                    <td style="text-align: center;"><input type="checkbox" class="sensor-toggle" data-sensor="light" checked></td>
+                                    <td><input type="color" class="sensor-bg-color" data-sensor="light" value="#ffffff" style="width: 100%; height: 36px; border-radius: 6px; border: 1px solid var(--border-color); cursor: pointer;"></td>
+                                    <td><input type="color" class="sensor-accent-color" data-sensor="light" value="#2563eb" style="width: 100%; height: 36px; border-radius: 6px; border: 1px solid var(--border-color); cursor: pointer;"></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>💨 Gas Level</strong></td>
+                                    <td style="text-align: center;"><input type="checkbox" class="sensor-toggle" data-sensor="gas" checked></td>
+                                    <td><input type="color" class="sensor-bg-color" data-sensor="gas" value="#ffffff" style="width: 100%; height: 36px; border-radius: 6px; border: 1px solid var(--border-color); cursor: pointer;"></td>
+                                    <td><input type="color" class="sensor-accent-color" data-sensor="gas" value="#2563eb" style="width: 100%; height: 36px; border-radius: 6px; border: 1px solid var(--border-color); cursor: pointer;"></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>🌱 Soil Moisture</strong></td>
+                                    <td style="text-align: center;"><input type="checkbox" class="sensor-toggle" data-sensor="soil" checked></td>
+                                    <td><input type="color" class="sensor-bg-color" data-sensor="soil" value="#ffffff" style="width: 100%; height: 36px; border-radius: 6px; border: 1px solid var(--border-color); cursor: pointer;"></td>
+                                    <td><input type="color" class="sensor-accent-color" data-sensor="soil" value="#2563eb" style="width: 100%; height: 36px; border-radius: 6px; border: 1px solid var(--border-color); cursor: pointer;"></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>🎚️ Potentiometer</strong></td>
+                                    <td style="text-align: center;"><input type="checkbox" class="sensor-toggle" data-sensor="pot" checked></td>
+                                    <td><input type="color" class="sensor-bg-color" data-sensor="pot" value="#ffffff" style="width: 100%; height: 36px; border-radius: 6px; border: 1px solid var(--border-color); cursor: pointer;"></td>
+                                    <td><input type="color" class="sensor-accent-color" data-sensor="pot" value="#2563eb" style="width: 100%; height: 36px; border-radius: 6px; border: 1px solid var(--border-color); cursor: pointer;"></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>📏 Distance</strong></td>
+                                    <td style="text-align: center;"><input type="checkbox" class="sensor-toggle" data-sensor="distance" checked></td>
+                                    <td><input type="color" class="sensor-bg-color" data-sensor="distance" value="#ffffff" style="width: 100%; height: 36px; border-radius: 6px; border: 1px solid var(--border-color); cursor: pointer;"></td>
+                                    <td><input type="color" class="sensor-accent-color" data-sensor="distance" value="#2563eb" style="width: 100%; height: 36px; border-radius: 6px; border: 1px solid var(--border-color); cursor: pointer;"></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>🚶 Motion Sensor</strong></td>
+                                    <td style="text-align: center;"><input type="checkbox" class="sensor-toggle" data-sensor="motion" checked></td>
+                                    <td><input type="color" class="sensor-bg-color" data-sensor="motion" value="#ffffff" style="width: 100%; height: 36px; border-radius: 6px; border: 1px solid var(--border-color); cursor: pointer;"></td>
+                                    <td><input type="color" class="sensor-accent-color" data-sensor="motion" value="#2563eb" style="width: 100%; height: 36px; border-radius: 6px; border: 1px solid var(--border-color); cursor: pointer;"></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>🔘 Push Button</strong></td>
+                                    <td style="text-align: center;"><input type="checkbox" class="sensor-toggle" data-sensor="button" checked></td>
+                                    <td><input type="color" class="sensor-bg-color" data-sensor="button" value="#ffffff" style="width: 100%; height: 36px; border-radius: 6px; border: 1px solid var(--border-color); cursor: pointer;"></td>
+                                    <td><input type="color" class="sensor-accent-color" data-sensor="button" value="#2563eb" style="width: 100%; height: 36px; border-radius: 6px; border: 1px solid var(--border-color); cursor: pointer;"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <h4 style="margin-bottom: 15px; color: var(--text-primary);">Actuator Cards Settings</h4>
+                    <div class="table-container" style="margin-bottom: 25px;">
+                        <table id="actuatorSettingsTable">
+                            <thead>
+                                <tr>
+                                    <th style="width: 30%;">Actuator</th>
+                                    <th style="width: 15%; text-align: center;">Enabled</th>
+                                    <th style="width: 27.5%;">Background Color</th>
+                                    <th style="width: 27.5%;">Accent Color</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>💡 LED Control</strong></td>
+                                    <td style="text-align: center;"><input type="checkbox" class="card-visibility-toggle" data-card="led" checked></td>
+                                    <td><input type="color" class="actuator-bg-color" data-card="led" value="#ffffff" style="width: 100%; height: 36px; border-radius: 6px; border: 1px solid var(--border-color); cursor: pointer;"></td>
+                                    <td><input type="color" class="actuator-accent-color" data-card="led" value="#2563eb" style="width: 100%; height: 36px; border-radius: 6px; border: 1px solid var(--border-color); cursor: pointer;"></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>🎨 RGB Control</strong></td>
+                                    <td style="text-align: center;"><input type="checkbox" class="card-visibility-toggle" data-card="rgb" checked></td>
+                                    <td><input type="color" class="actuator-bg-color" data-card="rgb" value="#ffffff" style="width: 100%; height: 36px; border-radius: 6px; border: 1px solid var(--border-color); cursor: pointer;"></td>
+                                    <td><input type="color" class="actuator-accent-color" data-card="rgb" value="#2563eb" style="width: 100%; height: 36px; border-radius: 6px; border: 1px solid var(--border-color); cursor: pointer;"></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>⚡ Relay Control</strong></td>
+                                    <td style="text-align: center;"><input type="checkbox" class="card-visibility-toggle" data-card="relay" checked></td>
+                                    <td><input type="color" class="actuator-bg-color" data-card="relay" value="#ffffff" style="width: 100%; height: 36px; border-radius: 6px; border: 1px solid var(--border-color); cursor: pointer;"></td>
+                                    <td><input type="color" class="actuator-accent-color" data-card="relay" value="#2563eb" style="width: 100%; height: 36px; border-radius: 6px; border: 1px solid var(--border-color); cursor: pointer;"></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>🎚️ Potentiometer Mapping</strong></td>
+                                    <td style="text-align: center;"><input type="checkbox" class="card-visibility-toggle" data-card="potmapping" checked></td>
+                                    <td><input type="color" class="actuator-bg-color" data-card="potmapping" value="#ffffff" style="width: 100%; height: 36px; border-radius: 6px; border: 1px solid var(--border-color); cursor: pointer;"></td>
+                                    <td><input type="color" class="actuator-accent-color" data-card="potmapping" value="#2563eb" style="width: 100%; height: 36px; border-radius: 6px; border: 1px solid var(--border-color); cursor: pointer;"></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>🔧 Servo Control</strong></td>
+                                    <td style="text-align: center;"><input type="checkbox" class="card-visibility-toggle" data-card="servo" checked></td>
+                                    <td><input type="color" class="actuator-bg-color" data-card="servo" value="#ffffff" style="width: 100%; height: 36px; border-radius: 6px; border: 1px solid var(--border-color); cursor: pointer;"></td>
+                                    <td><input type="color" class="actuator-accent-color" data-card="servo" value="#2563eb" style="width: 100%; height: 36px; border-radius: 6px; border: 1px solid var(--border-color); cursor: pointer;"></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>🔊 Buzzer Control</strong></td>
+                                    <td style="text-align: center;"><input type="checkbox" class="card-visibility-toggle" data-card="buzzer" checked></td>
+                                    <td><input type="color" class="actuator-bg-color" data-card="buzzer" value="#ffffff" style="width: 100%; height: 36px; border-radius: 6px; border: 1px solid var(--border-color); cursor: pointer;"></td>
+                                    <td><input type="color" class="actuator-accent-color" data-card="buzzer" value="#2563eb" style="width: 100%; height: 36px; border-radius: 6px; border: 1px solid var(--border-color); cursor: pointer;"></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>📺 LCD Control</strong></td>
+                                    <td style="text-align: center;"><input type="checkbox" class="card-visibility-toggle" data-card="lcd" checked></td>
+                                    <td><input type="color" class="actuator-bg-color" data-card="lcd" value="#ffffff" style="width: 100%; height: 36px; border-radius: 6px; border: 1px solid var(--border-color); cursor: pointer;"></td>
+                                    <td><input type="color" class="actuator-accent-color" data-card="lcd" value="#2563eb" style="width: 100%; height: 36px; border-radius: 6px; border: 1px solid var(--border-color); cursor: pointer;"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <button class="btn btn-primary" id="saveSettingsBtn" style="width: 100%; padding: 14px; font-size: 16px;">💾 Save Settings to ESP32</button>
+                    <div id="settingsStatus" class="hidden" style="margin-top: 15px; padding: 12px; border-radius: 10px; font-size: 14px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Theme Toggle
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = document.getElementById('themeIcon');
+        const themeText = document.getElementById('themeText');
+        const html = document.documentElement;
+
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        html.setAttribute('data-theme', savedTheme);
+        updateThemeButton(savedTheme);
+
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeButton(newTheme);
+        });
+
+        function updateThemeButton(theme) {
+            if (theme === 'dark') {
+                themeIcon.textContent = '☀️';
+                themeText.textContent = 'Light';
+            } else {
+                themeIcon.textContent = '🌙';
+                themeText.textContent = 'Dark';
+            }
+        }
+
+        // Global variables
+        let esp32IP = '';
+        let isConnected = false;
+        let startTime = Date.now();
+        let updateInterval = null;
+
+        // Check if we're on mobile - defined early
+        const isMobile = () => window.innerWidth <= 768;
+
+        // Connection
+        document.getElementById('connectBtn').addEventListener('click', connectToDevice);
+        document.getElementById('disconnectBtn').addEventListener('click', disconnectFromDevice);
+
+        function connectToDevice() {
+            const ip = document.getElementById('ipInput').value.trim();
+            if (!ip) {
+                alert('Please enter an IP address');
+                return;
+            }
+
+            esp32IP = ip;
+            const connectBtn = document.getElementById('connectBtn');
+            connectBtn.textContent = '🔄 Connecting...';
+            connectBtn.disabled = true;
+
+            fetch(`http://${esp32IP}/api/device`)
+                .then(response => response.json())
+                .then(data => {
+                    isConnected = true;
+                    startTime = Date.now();
+
+                    document.getElementById('connectBtn').classList.add('hidden');
+                    document.getElementById('disconnectBtn').classList.remove('hidden');
+                    document.getElementById('tabNavigation').classList.remove('hidden');
+                    document.getElementById('dashboardTab').classList.remove('hidden');
+                    document.getElementById('connectionStatus').textContent = 'Connected to ' + esp32IP;
+                    document.getElementById('statusIndicator').classList.add('active');
+
+                    showDeviceInfo(data);
+                    startDataUpdates();
+                    loadRules();
+                    loadSettings();
+                    startUpdateChecker();
+
+                    // Hide sidebar on mobile after connection
+                    if (isMobile() && !sidebar.classList.contains('collapsed')) {
+                        toggleSidebar();
+                    }
+                })
+                .catch(error => {
+                    console.error('Connection error:', error);
+                    connectBtn.textContent = '🔌 Connect';
+                    connectBtn.disabled = false;
+                    alert('Failed to connect. Check IP address.');
+                });
+        }
+
+        function disconnectFromDevice() {
+            isConnected = false;
+            if (updateInterval) clearInterval(updateInterval);
+            stopUpdateChecker();
+
+            const connectBtn = document.getElementById('connectBtn');
+            const disconnectBtn = document.getElementById('disconnectBtn');
+
+            // Reset connect button state
+            connectBtn.textContent = '🔌 Connect';
+            connectBtn.disabled = false;
+
+            connectBtn.classList.remove('hidden');
+            disconnectBtn.classList.add('hidden');
+            document.getElementById('tabNavigation').classList.add('hidden');
+            document.getElementById('dashboardTab').classList.add('hidden');
+            document.getElementById('settingsTab').classList.add('hidden');
+            document.getElementById('connectionStatus').textContent = 'Not Connected';
+            document.getElementById('statusIndicator').classList.remove('active');
+
+            // Show sidebar on mobile after disconnection
+            if (isMobile() && sidebar.classList.contains('collapsed')) {
+                toggleSidebar();
+            }
+        }
+
+        function showDeviceInfo(data) {
+            document.getElementById('deviceName').textContent = data.deviceName || 'ESP32';
+            document.getElementById('macAddress').textContent = data.mac || '--';
+            document.getElementById('deviceUptime').textContent = formatUptime(data.uptime || 0);
+            document.getElementById('deviceInfo').classList.remove('hidden');
+        }
+
+        function formatUptime(seconds) {
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = seconds % 60;
+            return `${h}h ${m}m ${s}s`;
+        }
+
+        function startDataUpdates() {
+            updateSensorData();
+            updateInterval = setInterval(updateSensorData, 2000);
+        }
+
+        function updateSensorData() {
+            if (!isConnected) return;
+
+            fetch(`http://${esp32IP}/api/sensors`)
+                .then(response => response.json())
+                .then(data => {
+                    // Update all sensors
+                    document.getElementById('temperature').textContent = data.temperature.toFixed(1);
+                    document.getElementById('humidity').textContent = data.humidity.toFixed(1);
+                    document.getElementById('ds18b20Temp').textContent = data.ds18b20Temp.toFixed(1);
+                    document.getElementById('lightLevel').textContent = data.lightLevel;
+                    document.getElementById('gasLevel').textContent = data.gasLevel;
+                    document.getElementById('soilMoisture').textContent = data.soilMoisture;
+                    document.getElementById('potValue').textContent = data.potValue;
+                    document.getElementById('distanceCm').textContent = data.distance.toFixed(1);
+
+                    document.getElementById('motionStatus').textContent = data.motionDetected ? '🚶 Motion' : '😴 None';
+                    document.getElementById('buttonStatus').textContent = data.buttonPressed ? '✋ Pressed' : '👆 Released';
+
+
+
+                    // Update controls
+                    document.getElementById('ledSwitch').checked = data.ledState;
+                    document.getElementById('ledPWM').value = data.ledPWM || 255;
+                    document.getElementById('pwmValue').textContent = data.ledPWM || 255;
+
+                    document.getElementById('rgbR').value = data.rgbR;
+                    document.getElementById('rgbRNum').value = data.rgbR;
+                    document.getElementById('rgbG').value = data.rgbG;
+                    document.getElementById('rgbGNum').value = data.rgbG;
+                    document.getElementById('rgbB').value = data.rgbB;
+                    document.getElementById('rgbBNum').value = data.rgbB;
+                    updateColorPreview();
+
+                    document.getElementById('relaySwitch').checked = data.relayState;
+                    document.getElementById('servoSlider').value = data.servoPosition;
+                    document.getElementById('servoPosition').textContent = data.servoPosition;
+
+                    // Update potentiometer mapping display
+                    if (data.potMapping) {
+                        const mappingRadios = document.querySelectorAll('input[name="potMapping"]');
+                        mappingRadios.forEach(radio => {
+                            if (radio.value === data.potMapping) {
+                                radio.checked = true;
+                            }
+                        });
+                        updateMappingDisplay(data.potMapping, data.potValue, data.potMappedValue);
+                    }
+
+                    // Update times
+                    document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+                    const uptime = Math.floor((Date.now() - startTime) / 1000);
+                    document.getElementById('uptime').textContent = formatUptime(uptime);
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        function updateColorPreview() {
+            const r = document.getElementById('rgbR').value;
+            const g = document.getElementById('rgbG').value;
+            const b = document.getElementById('rgbB').value;
+            document.getElementById('colorPreview').style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+        }
+
+        // LED Control
+        document.getElementById('ledSwitch').addEventListener('change', (e) => {
+            const pwm = document.getElementById('ledPWM').value;
+            controlLED(e.target.checked, pwm);
+        });
+
+        document.getElementById('ledPWM').addEventListener('input', (e) => {
+            document.getElementById('pwmValue').textContent = e.target.value;
+            const state = document.getElementById('ledSwitch').checked;
+            controlLED(state, e.target.value);
+        });
+
+        // RGB Control - Sliders
+        ['rgbR', 'rgbG', 'rgbB'].forEach(id => {
+            document.getElementById(id).addEventListener('input', (e) => {
+                // Update corresponding number input
+                document.getElementById(id + 'Num').value = e.target.value;
+                updateColorPreview();
+                controlRGB();
+            });
+        });
+
+        // RGB Control - Number Inputs
+        ['rgbRNum', 'rgbGNum', 'rgbBNum'].forEach(id => {
+            document.getElementById(id).addEventListener('input', (e) => {
+                // Update corresponding slider
+                const sliderId = id.replace('Num', '');
+                const value = Math.max(0, Math.min(255, parseInt(e.target.value) || 0));
+                e.target.value = value;
+                document.getElementById(sliderId).value = value;
+                updateColorPreview();
+                controlRGB();
+            });
+        });
+
+        // Relay Control
+        document.getElementById('relaySwitch').addEventListener('change', (e) => {
+            controlRelay(e.target.checked);
+        });
+
+        // Servo Control
+        document.getElementById('servoSlider').addEventListener('input', (e) => {
+            document.getElementById('servoPosition').textContent = e.target.value;
+            controlServo(e.target.value);
+        });
+
+        // Buzzer Control
+        document.getElementById('buzzerBtn').addEventListener('click', () => {
+            controlBuzzer();
+        });
+
+        // LCD Control
+        document.querySelectorAll('input[name="lcdMode"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                if (e.target.value === 'custom') {
+                    document.getElementById('customTextGroup').classList.remove('hidden');
+                } else {
+                    document.getElementById('customTextGroup').classList.add('hidden');
+                    controlLCD('default');
+                }
+            });
+        });
+
+        document.getElementById('updateLcdBtn').addEventListener('click', () => {
+            const text1 = document.getElementById('customLcdText1').value.trim();
+            const text2 = document.getElementById('customLcdText2').value.trim();
+            if (text1) {
+                controlLCD('custom', text1, text2);
+            }
+        });
+
+        // Control Functions
+        function controlLED(state, pwm) {
+            if (!isConnected) return;
+            fetch(`http://${esp32IP}/api/led`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: `state=${state}&pwm=${pwm}&blink=false`
+            }).catch(e => console.error(e));
+        }
+
+        function controlRGB() {
+            if (!isConnected) return;
+            const r = document.getElementById('rgbR').value;
+            const g = document.getElementById('rgbG').value;
+            const b = document.getElementById('rgbB').value;
+            fetch(`http://${esp32IP}/api/rgb`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: `r=${r}&g=${g}&b=${b}`
+            }).catch(e => console.error(e));
+        }
+
+        function controlRelay(state) {
+            if (!isConnected) return;
+            fetch(`http://${esp32IP}/api/relay`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: `state=${state}&onDelay=0&offDelay=0`
+            }).catch(e => console.error(e));
+        }
+
+        function controlServo(position) {
+            if (!isConnected) return;
+            fetch(`http://${esp32IP}/api/servo`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: `position=${position}`
+            }).catch(e => console.error(e));
+        }
+
+        function controlBuzzer() {
+            if (!isConnected) return;
+            fetch(`http://${esp32IP}/api/buzzer`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'state=true'
+            }).catch(e => console.error(e));
+        }
+
+        function controlLCD(mode, text1 = '', text2 = '') {
+            if (!isConnected) return;
+            let body = `mode=${mode}`;
+            if (mode === 'custom' && text1) {
+                body += `&text1=${encodeURIComponent(text1)}&text2=${encodeURIComponent(text2)}`;
+            }
+            fetch(`http://${esp32IP}/api/lcd`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: body
+            }).catch(e => console.error(e));
+        }
+
+        // Potentiometer Mapping Control
+        document.querySelectorAll('input[name="potMapping"]').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                setPotMapping(e.target.value);
+            });
+        });
+
+        function setPotMapping(mode) {
+            if (!isConnected) return;
+            fetch(`http://${esp32IP}/api/potmapping`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: `mode=${mode}`
+            }).catch(e => console.error(e));
+        }
+
+        function updateMappingDisplay(mapping, potValue, mappedValue) {
+            document.getElementById('mappedPotValue').textContent = potValue || 0;
+            document.getElementById('mappedOutputValue').textContent = mappedValue || 0;
+
+            let mappingText = 'None';
+            if (mapping === 'led') {
+                mappingText = 'LED PWM (0-255)';
+            } else if (mapping === 'rgb') {
+                mappingText = 'RGB LED (0-255)';
+            } else if (mapping === 'servo') {
+                mappingText = 'Servo Motor (0-180°)';
+            }
+            document.getElementById('currentMapping').textContent = mappingText;
+        }
+
+        // Action Type Change Handler
+        document.getElementById('actionTypeSelect').addEventListener('change', (e) => {
+            const actionValueGroup = document.getElementById('actionValueGroup');
+            const lcdTextGroup = document.getElementById('lcdTextGroup');
+            const actionValue = e.target.value;
+
+            // Show LCD text inputs for LCD display action
+            if (actionValue === 'lcd_display') {
+                actionValueGroup.classList.add('hidden');
+                lcdTextGroup.classList.remove('hidden');
+            }
+            // Show value input only for servo (needs angle 0-180)
+            else if (actionValue === 'servo_move') {
+                actionValueGroup.classList.remove('hidden');
+                lcdTextGroup.classList.add('hidden');
+            }
+            // Hide value input for all other actions (LED, buzzer, relay, RGB)
+            else {
+                actionValueGroup.classList.add('hidden');
+                lcdTextGroup.classList.add('hidden');
+            }
+        });
+
+        // LCD Mode Change Handler
+        document.getElementById('lcdModeSelect').addEventListener('change', (e) => {
+            const lcdCustomInputs = document.getElementById('lcdCustomInputs');
+            if (e.target.value === 'custom') {
+                lcdCustomInputs.style.display = 'block';
+            } else {
+                lcdCustomInputs.style.display = 'none';
+            }
+        });
+
+        // Rule Management
+        document.getElementById('ruleForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const ruleData = { action: 'add', enabled: 'true' };
+            for (let [key, value] of formData.entries()) {
+                ruleData[key] = value;
+            }
+            addRule(ruleData);
+            e.target.reset();
+            // Reset form visibility - hide value input by default since most actions don't need it
+            document.getElementById('actionValueGroup').classList.add('hidden');
+            document.getElementById('lcdTextGroup').classList.add('hidden');
+            // Reset LCD mode to custom (default)
+            document.getElementById('lcdModeSelect').value = 'custom';
+            document.getElementById('lcdCustomInputs').style.display = 'block';
+        });
+
+        function addRule(ruleData) {
+            if (!isConnected) return;
+            const body = Object.keys(ruleData).map(k => `${k}=${encodeURIComponent(ruleData[k])}`).join('&');
+            fetch(`http://${esp32IP}/api/rules`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: body
+            })
+            .then(response => {
+                if (response.ok) return response.json();
+                throw new Error('Failed to add rule');
+            })
+            .then(() => {
+                setTimeout(loadRules, 300);
+            })
+            .catch(e => console.error(e));
+        }
+
+        function loadRules() {
+            if (!isConnected) return;
+            fetch(`http://${esp32IP}/api/rules`)
+                .then(r => r.json())
+                .then(data => {
+                    const tbody = document.getElementById('rulesTableBody');
+                    if (!data.rules || data.rules.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><div class="empty-state-icon">🤖</div><p>No rules yet</p></div></td></tr>';
+                        checkAutomationControls([]);
+                        return;
+                    }
+                    tbody.innerHTML = data.rules.map((rule, i) => `
+                        <tr>
+                            <td>${rule.name}</td>
+                            <td>${rule.condition}</td>
+                            <td>${rule.operator}</td>
+                            <td>${rule.threshold}</td>
+                            <td>${rule.action}</td>
+                            <td><span class="badge ${rule.enabled ? 'badge-success' : 'badge-danger'}">${rule.enabled ? 'Active' : 'Inactive'}</span></td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button class="icon-btn" onclick="toggleRule(${i})">${rule.enabled ? '⏸️' : '▶️'}</button>
+                                    <button class="icon-btn" onclick="deleteRule(${i})">🗑️</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `).join('');
+                    checkAutomationControls(data.rules);
+                }).catch(e => console.error(e));
+        }
+
+        function checkAutomationControls(rules) {
+            // Reset all controls first
+            const allControls = ['led', 'rgb', 'relay', 'servo', 'buzzer', 'lcd'];
+            allControls.forEach(control => {
+                const card = document.getElementById(`${control}ControlCard`);
+                const warning = document.getElementById(`${control}Warning`);
+                if (card && warning) {
+                    card.classList.remove('disabled');
+                    warning.classList.add('hidden');
+                }
+            });
+
+            // Check which actuators are controlled by active rules
+            const activeActions = new Set();
+            rules.forEach(rule => {
+                if (rule.enabled) {
+                    const action = rule.action;
+                    if (action.startsWith('led_')) {
+                        activeActions.add('led');
+                    } else if (action.startsWith('rgb_')) {
+                        activeActions.add('rgb');
+                    } else if (action.startsWith('relay_')) {
+                        activeActions.add('relay');
+                    } else if (action === 'servo_move') {
+                        activeActions.add('servo');
+                    } else if (action === 'buzzer_on') {
+                        activeActions.add('buzzer');
+                    } else if (action === 'lcd_display') {
+                        activeActions.add('lcd');
+                    }
+                }
+            });
+
+            // Disable controls that are in use
+            activeActions.forEach(control => {
+                const card = document.getElementById(`${control}ControlCard`);
+                const warning = document.getElementById(`${control}Warning`);
+                if (card && warning) {
+                    card.classList.add('disabled');
+                    warning.classList.remove('hidden');
+                }
+            });
+        }
+
+        function toggleRule(index) {
+            if (!isConnected) return;
+            fetch(`http://${esp32IP}/api/rules`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: `action=toggle&index=${index}`
+            })
+            .then(response => {
+                if (response.ok) return response.json();
+                throw new Error('Failed to toggle rule');
+            })
+            .then(() => {
+                setTimeout(loadRules, 300);
+            })
+            .catch(e => console.error(e));
+        }
+
+        function deleteRule(index) {
+            if (!confirm('Delete this rule?')) return;
+            if (!isConnected) return;
+            fetch(`http://${esp32IP}/api/rules`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: `action=delete&index=${index}`
+            })
+            .then(response => {
+                if (response.ok) return response.json();
+                throw new Error('Failed to delete rule');
+            })
+            .then(() => {
+                setTimeout(loadRules, 300);
+            })
+            .catch(e => console.error(e));
+        }
+
+        // OTA Update Management
+        const FIRMWARE_JSON_URL = 'http://app.makerbuddy.cc/firmware.json';
+        let firmwareBinUrl = '';
+        let updateCheckInterval = null;
+
+        document.getElementById('installUpdateBtn').addEventListener('click', installUpdate);
+
+        function checkForUpdates() {
+            if (!isConnected) return;
+
+            showUpdateStatus('Checking for updates...', 'info');
+
+            // Fetch current version from ESP32
+            fetch(`http://${esp32IP}/api/firmware`)
+                .then(r => r.json())
+                .then(currentData => {
+                    const currentVersion = currentData.version;
+                    document.getElementById('currentVersion').textContent = 'v' + currentVersion;
+
+                    // Fetch latest firmware info from MakerBuddy server
+                    return fetch(FIRMWARE_JSON_URL)
+                        .then(r => r.json())
+                        .then(firmwareData => {
+                            const latestVersion = firmwareData.version;
+                            firmwareBinUrl = firmwareData.url;
+                            const releaseDate = firmwareData.date || 'N/A';
+
+                            document.getElementById('latestVersion').textContent = 'v' + latestVersion;
+                            document.getElementById('releaseDate').textContent = releaseDate;
+
+                            if (latestVersion > currentVersion) {
+                                showUpdateStatus(`🎉 New version ${latestVersion} available! Released: ${releaseDate}`, 'success');
+                                document.getElementById('installUpdateBtn').classList.remove('hidden');
+
+                                // Show popup notification
+                                if (confirm(`🔔 Firmware Update Available!\n\nNew Version: ${latestVersion}\nCurrent Version: ${currentVersion}\nRelease Date: ${releaseDate}\n\nWould you like to go to Settings tab to update now?`)) {
+                                    switchTab('settings');
+                                }
+                            } else {
+                                showUpdateStatus('✅ Your firmware is up to date!', 'success');
+                                document.getElementById('installUpdateBtn').classList.add('hidden');
+                            }
+                        });
+                })
+                .catch(e => {
+                    console.error(e);
+                    showUpdateStatus('❌ Failed to check for updates. Please check your internet connection.', 'error');
+                });
+        }
+
+        // Auto-check for updates every 30 minutes
+        function startUpdateChecker() {
+            checkForUpdates(); // Check immediately
+            updateCheckInterval = setInterval(checkForUpdates, 30 * 60 * 1000); // Check every 30 minutes
+        }
+
+        function stopUpdateChecker() {
+            if (updateCheckInterval) {
+                clearInterval(updateCheckInterval);
+                updateCheckInterval = null;
+            }
+        }
+
+        function installUpdate() {
+            if (!firmwareBinUrl) {
+                showUpdateStatus('No firmware URL available', 'error');
+                return;
+            }
+
+            if (!confirm('⚠️ WARNING: Device will restart during update. Do NOT disconnect power!\n\nContinue with firmware update?')) {
+                return;
+            }
+
+            showUpdateStatus('Starting OTA update... Please wait and do not disconnect power!', 'warning');
+            document.getElementById('installUpdateBtn').disabled = true;
+            document.getElementById('checkUpdateBtn').disabled = true;
+
+            fetch(`http://${esp32IP}/api/ota/update`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: `url=${encodeURIComponent(firmwareBinUrl)}`
+            })
+                .then(r => r.json())
+                .then(data => {
+                    showUpdateStatus('Update started! Device will restart automatically. Check LCD for progress.', 'warning');
+                })
+                .catch(e => {
+                    console.error(e);
+                    showUpdateStatus('Failed to start update', 'error');
+                    document.getElementById('installUpdateBtn').disabled = false;
+                    document.getElementById('checkUpdateBtn').disabled = false;
+                });
+        }
+
+        function showUpdateStatus(message, type) {
+            const statusEl = document.getElementById('updateStatus');
+            statusEl.textContent = message;
+
+            if (type === 'success') {
+                statusEl.style.background = 'rgba(16, 185, 129, 0.15)';
+                statusEl.style.color = 'var(--success-color)';
+                statusEl.style.border = '2px solid var(--success-color)';
+            } else if (type === 'error') {
+                statusEl.style.background = 'rgba(239, 68, 68, 0.15)';
+                statusEl.style.color = 'var(--danger-color)';
+                statusEl.style.border = '2px solid var(--danger-color)';
+            } else if (type === 'warning') {
+                statusEl.style.background = 'rgba(245, 158, 11, 0.15)';
+                statusEl.style.color = 'var(--warning-color)';
+                statusEl.style.border = '2px solid var(--warning-color)';
+            } else {
+                statusEl.style.background = 'rgba(37, 99, 235, 0.15)';
+                statusEl.style.color = 'var(--primary-color)';
+                statusEl.style.border = '2px solid var(--primary-color)';
+            }
+        }
+
+        // Dashboard Settings Management
+        // Sensor toggle handlers
+        document.querySelectorAll('.sensor-toggle').forEach(toggle => {
+            toggle.addEventListener('change', (e) => {
+                const sensor = e.target.dataset.sensor;
+                applySensorSettings(sensor);
+            });
+        });
+
+        // Sensor color handlers
+        document.querySelectorAll('.sensor-bg-color, .sensor-accent-color').forEach(colorInput => {
+            colorInput.addEventListener('input', (e) => {
+                const sensor = e.target.dataset.sensor;
+                applySensorSettings(sensor);
+            });
+        });
+
+        // Actuator toggle handlers
+        document.querySelectorAll('.card-visibility-toggle').forEach(toggle => {
+            toggle.addEventListener('change', (e) => {
+                const card = e.target.dataset.card;
+                applyActuatorSettings(card);
+            });
+        });
+
+        // Actuator color handlers
+        document.querySelectorAll('.actuator-bg-color, .actuator-accent-color').forEach(colorInput => {
+            colorInput.addEventListener('input', (e) => {
+                const card = e.target.dataset.card;
+                applyActuatorSettings(card);
+            });
+        });
+
+        document.getElementById('saveSettingsBtn').addEventListener('click', saveSettings);
+
+        function applySensorSettings(sensor) {
+            const toggle = document.querySelector(`.sensor-toggle[data-sensor="${sensor}"]`);
+            const bgColor = document.querySelector(`.sensor-bg-color[data-sensor="${sensor}"]`).value;
+            const accentColor = document.querySelector(`.sensor-accent-color[data-sensor="${sensor}"]`).value;
+            const isVisible = toggle.checked;
+
+            const sensorCard = document.querySelector(`.sensor-card[data-sensor="${sensor}"]`);
+            if (sensorCard) {
+                sensorCard.style.display = isVisible ? 'flex' : 'none';
+                sensorCard.style.background = bgColor;
+                const icon = sensorCard.querySelector('.sensor-icon');
+                if (icon) {
+                    icon.style.background = `linear-gradient(135deg, ${accentColor}, ${accentColor}dd)`;
+                }
+            }
+        }
+
+        function applyActuatorSettings(card) {
+            const toggle = document.querySelector(`.card-visibility-toggle[data-card="${card}"]`);
+            const bgColorInput = document.querySelector(`.actuator-bg-color[data-card="${card}"]`);
+            const accentColorInput = document.querySelector(`.actuator-accent-color[data-card="${card}"]`);
+
+            const bgColor = bgColorInput ? bgColorInput.value : '#ffffff';
+            const accentColor = accentColorInput ? accentColorInput.value : '#2563eb';
+            const isVisible = toggle.checked;
+
+            const actuatorCard = document.querySelector(`[data-card-id="${card}"]`);
+            if (actuatorCard) {
+                actuatorCard.style.display = isVisible ? 'block' : 'none';
+                actuatorCard.style.background = bgColor;
+                const icons = actuatorCard.querySelectorAll('.control-icon');
+                icons.forEach(icon => {
+                    icon.style.background = `linear-gradient(135deg, ${accentColor}, ${accentColor}dd)`;
+                });
+            }
+        }
+
+        function saveSettings() {
+            const settings = {
+                sensors: {},
+                actuators: {}
+            };
+
+            // Collect sensor settings
+            document.querySelectorAll('.sensor-toggle').forEach(toggle => {
+                const sensor = toggle.dataset.sensor;
+                settings.sensors[sensor] = {
+                    enabled: toggle.checked,
+                    bgColor: document.querySelector(`.sensor-bg-color[data-sensor="${sensor}"]`).value,
+                    accentColor: document.querySelector(`.sensor-accent-color[data-sensor="${sensor}"]`).value
+                };
+            });
+
+            // Collect actuator settings
+            document.querySelectorAll('.card-visibility-toggle').forEach(toggle => {
+                const card = toggle.dataset.card;
+                const bgColorInput = document.querySelector(`.actuator-bg-color[data-card="${card}"]`);
+                const accentColorInput = document.querySelector(`.actuator-accent-color[data-card="${card}"]`);
+
+                settings.actuators[card] = {
+                    enabled: toggle.checked,
+                    bgColor: bgColorInput ? bgColorInput.value : '#ffffff',
+                    accentColor: accentColorInput ? accentColorInput.value : '#2563eb'
+                };
+            });
+
+            // Save to browser localStorage only
+            localStorage.setItem('dashboardSettings', JSON.stringify(settings));
+            showSettingsStatus('✅ Settings saved to browser!', 'success');
+        }
+
+        function loadSettings() {
+            // Load settings from browser localStorage only
+            const localSettings = localStorage.getItem('dashboardSettings');
+            if (!localSettings) return;
+
+            const settings = JSON.parse(localSettings);
+
+            // Load sensor settings
+            if (settings.sensors) {
+                Object.keys(settings.sensors).forEach(sensor => {
+                    const sensorSettings = settings.sensors[sensor];
+                    const toggle = document.querySelector(`.sensor-toggle[data-sensor="${sensor}"]`);
+                    const bgColor = document.querySelector(`.sensor-bg-color[data-sensor="${sensor}"]`);
+                    const accentColor = document.querySelector(`.sensor-accent-color[data-sensor="${sensor}"]`);
+
+                    if (toggle) toggle.checked = sensorSettings.enabled;
+                    if (bgColor) bgColor.value = sensorSettings.bgColor;
+                    if (accentColor) accentColor.value = sensorSettings.accentColor;
+
+                    applySensorSettings(sensor);
+                });
+            }
+
+            // Load actuator settings
+            if (settings.actuators) {
+                Object.keys(settings.actuators).forEach(card => {
+                    const actuatorSettings = settings.actuators[card];
+                    const toggle = document.querySelector(`.card-visibility-toggle[data-card="${card}"]`);
+                    const bgColor = document.querySelector(`.actuator-bg-color[data-card="${card}"]`);
+                    const accentColor = document.querySelector(`.actuator-accent-color[data-card="${card}"]`);
+
+                    if (toggle) toggle.checked = actuatorSettings.enabled;
+                    if (bgColor) bgColor.value = actuatorSettings.bgColor;
+                    if (accentColor) accentColor.value = actuatorSettings.accentColor;
+
+                    applyActuatorSettings(card);
+                });
+            }
+        }
+
+        function showSettingsStatus(message, type) {
+            const statusEl = document.getElementById('settingsStatus');
+            statusEl.classList.remove('hidden');
+            statusEl.textContent = message;
+
+            if (type === 'success') {
+                statusEl.style.background = 'rgba(16, 185, 129, 0.15)';
+                statusEl.style.color = 'var(--success-color)';
+                statusEl.style.border = '2px solid var(--success-color)';
+            } else if (type === 'error') {
+                statusEl.style.background = 'rgba(239, 68, 68, 0.15)';
+                statusEl.style.color = 'var(--danger-color)';
+                statusEl.style.border = '2px solid var(--danger-color)';
+            }
+
+            setTimeout(() => {
+                statusEl.classList.add('hidden');
+            }, 5000);
+        }
+
+        // Tab Navigation
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const tabName = e.target.dataset.tab;
+                switchTab(tabName);
+            });
+        });
+
+        function switchTab(tabName) {
+            // Update button states
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+
+            // Show/hide tab content
+            document.getElementById('dashboardTab').classList.add('hidden');
+            document.getElementById('settingsTab').classList.add('hidden');
+
+            if (tabName === 'dashboard') {
+                document.getElementById('dashboardTab').classList.remove('hidden');
+            } else if (tabName === 'settings') {
+                document.getElementById('settingsTab').classList.remove('hidden');
+            }
+        }
+
+        // Initialize
+        updateColorPreview();
+
+        // Sidebar Toggle
+        const sidebar = document.getElementById('sidebar');
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const mainContent = document.getElementById('mainContent');
+        const sidebarBackdrop = document.getElementById('sidebarBackdrop');
+
+        // Initialize sidebar state based on connection status and device type
+        function initializeSidebar() {
+            const mobile = isMobile();
+
+            if (mobile) {
+                // On mobile, show sidebar if not connected
+                if (!isConnected) {
+                    sidebar.classList.remove('collapsed');
+                    mainContent.classList.remove('expanded');
+                    sidebarToggle.textContent = '✕';
+                    sidebarBackdrop.classList.add('active');
+                    document.body.classList.add('sidebar-open');
+                } else {
+                    sidebar.classList.add('collapsed');
+                    mainContent.classList.add('expanded');
+                    sidebarToggle.textContent = '☰';
+                    sidebarBackdrop.classList.remove('active');
+                    document.body.classList.remove('sidebar-open');
+                }
+                sidebarToggle.style.left = '';
+            } else {
+                // On desktop, check saved state
+                sidebarBackdrop.classList.remove('active');
+                document.body.classList.remove('sidebar-open');
+                let sidebarOpen = localStorage.getItem('sidebarOpen');
+                if (sidebarOpen === null || sidebarOpen === 'true') {
+                    sidebar.classList.remove('collapsed');
+                    mainContent.classList.remove('expanded');
+                    sidebarToggle.textContent = '✕';
+                    sidebarToggle.style.left = '254px';
+                } else {
+                    sidebar.classList.add('collapsed');
+                    mainContent.classList.add('expanded');
+                    sidebarToggle.textContent = '☰';
+                    sidebarToggle.style.left = '0px';
+                }
+            }
+        }
+
+        // Initialize on load
+        initializeSidebar();
+
+        function toggleSidebar() {
+            sidebar.classList.toggle('collapsed');
+            mainContent.classList.toggle('expanded');
+            const isOpen = !sidebar.classList.contains('collapsed');
+            sidebarToggle.textContent = isOpen ? '✕' : '☰';
+
+            // Handle backdrop and body scroll on mobile
+            if (isMobile()) {
+                if (isOpen) {
+                    sidebarBackdrop.classList.add('active');
+                    document.body.classList.add('sidebar-open');
+                } else {
+                    sidebarBackdrop.classList.remove('active');
+                    document.body.classList.remove('sidebar-open');
+                }
+            } else {
+                // Only set left position on desktop
+                sidebarToggle.style.left = isOpen ? '254px' : '0px';
+                document.body.classList.remove('sidebar-open');
+            }
+
+            localStorage.setItem('sidebarOpen', isOpen);
+        }
+
+        sidebarToggle.addEventListener('click', toggleSidebar);
+
+        // Close sidebar when clicking backdrop
+        sidebarBackdrop.addEventListener('click', () => {
+            if (isMobile() && !sidebar.classList.contains('collapsed')) {
+                toggleSidebar();
+            }
+        });
+
+        // Handle window resize with debounce
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => {
+                initializeSidebar();
+            }, 250);
+        });
+
+        // Load settings from localStorage on page load
+        loadSettings();
+    </script>
+</body>
+</html>
