@@ -14,6 +14,13 @@ This folder contains the PCB design files for MakerBuddy V1.0:
 
 ## 🎯 Planned Features
 
+### Manufacturing Services
+When ready to manufacture:
+- PCBWay (Quality service) [Order Your PCB](https://www.pcbway.com/project/shareproject/MakerBuddy_IoT_Kit_V1_419d22f2.html)
+- JLCPCB (Budget-friendly)
+- OSH Park (USA, purple boards)
+- Seeed Studio (Good for prototypes)
+
 ### PCB Specifications
 - **Layers**: 2-layer PCB design
 - **Size**: Compact form factor (TBD)
@@ -36,7 +43,6 @@ This folder contains the PCB design files for MakerBuddy V1.0:
 - Expansion headers for additional sensors
 - OLED display option
 - Battery backup circuit
-- External antenna connector
 - Programming headers
 
 ## 🛠️ Current Development Status
@@ -105,18 +111,6 @@ Looking to improve your PCB design skills?
 - Community forums (r/PrintedCircuitBoard, EEVblog)
 - Practice with simple projects
 
-### Recommended Tools
-- **KiCad** (Free, Open Source)
-- **EasyEDA** (Free, Web-based)
-- **Fusion 360** (Free for hobbyists)
-- **LTSpice** (Circuit simulation)
-
-### Manufacturing Services
-When ready to manufacture:
-- PCBWay (Quality service)
-- JLCPCB (Budget-friendly)
-- OSH Park (USA, purple boards)
-- Seeed Studio (Good for prototypes)
 
 ## 💰 Estimated Costs
 
