@@ -46,6 +46,8 @@ MakerBuddy V1.0 is an all-in-one IoT learning platform that combines multiple se
 - Required Arduino Libraries (see Arduino Code folder)
 - Web server (Apache/XAMPP) for hosting the dashboard
 
+> ⚠️ **Chrome** — requires [MakerBuddy Chrome Extension](https://chromewebstore.google.com/detail/makerbuddy-iot-controller/jdhfgbalmimccengljapbgfoaldmleah) for full functionality
+
 ### Quick Setup
 
 1. **Clone the repository**
