@@ -438,11 +438,130 @@ body.sidebar-open {
     border: 1px solid var(--glass-border);
     box-shadow: var(--shadow-md);
     transition: all 0.3s;
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
     text-align: center;
     min-height: 180px;
+}
+
+.sensor-settings-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 30px;
+    height: 30px;
+    border-radius: 10px;
+    border: 1px solid var(--glass-border);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    opacity: 0.85;
+    transition: all 0.2s ease;
+}
+
+.sensor-settings-btn:hover {
+    opacity: 1;
+    transform: translateY(-1px);
+}
+
+.soil-cal-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 9998;
+}
+
+.soil-cal-backdrop.active {
+    display: block;
+}
+
+.soil-cal-modal {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 9999;
+    width: min(540px, 92vw);
+    background: var(--bg-secondary);
+    border-radius: 18px;
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35);
+    padding: 22px;
+}
+
+.soil-cal-modal.active {
+    display: block;
+}
+
+.soil-cal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.soil-cal-title {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+
+.soil-cal-close {
+    border: 1px solid var(--border-color);
+    background: transparent;
+    color: var(--text-primary);
+    border-radius: 10px;
+    padding: 8px 10px;
+    cursor: pointer;
+}
+
+.soil-cal-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+}
+
+.soil-cal-card {
+    background: var(--bg-primary);
+    border: 2px solid var(--border-color);
+    border-radius: 14px;
+    padding: 14px;
+}
+
+.soil-cal-row {
+    display: grid;
+    grid-template-columns: 1fr 96px 96px;
+    gap: 10px;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.soil-cal-input {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 2px solid var(--border-color);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 14px;
+}
+
+.soil-cal-hint {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.4;
 }
 
 .sensor-card:hover {
@@ -492,6 +611,11 @@ body.sidebar-open {
     border: 1px solid var(--glass-border);
     box-shadow: var(--shadow-md);
     transition: all 0.3s;
+}
+
+.automation-active {
+    border: 2px solid #3b82f6 !important;
+    box-shadow: 0 18px 40px rgba(59, 130, 246, 0.22) !important;
 }
 
 .control-card:hover {
@@ -768,6 +892,80 @@ tbody tr:hover {
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
+.range-settings.is-disabled {
+    opacity: 0.6;
+}
+
+.range-settings.is-disabled input,
+.range-settings.is-disabled select {
+    cursor: not-allowed;
+}
+
+.loop-condition-card {
+    padding-top: 6px;
+}
+
+.loop-condition-row {
+    display: grid;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.loop-condition-field input,
+.loop-condition-field select {
+    padding: 10px 12px;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-size: 14px;
+    transition: all 0.3s;
+}
+
+.loop-condition-field input:focus,
+.loop-condition-field select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.loop-condition-field select,
+.loop-condition-field input {
+    width: 100%;
+}
+
+.loop-condition-toggle input[type="checkbox"] {
+    margin-right: 8px;
+}
+
+.loop-condition-toggle span {
+    user-select: none;
+}
+
+.loop-range-logic {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+/* Compact desktop layout by default (most screens) */
+.loop-condition-row--main {
+    grid-template-columns: minmax(240px, 1.6fr) minmax(170px, 1fr) minmax(140px, 0.8fr);
+    align-items: end;
+}
+
+.loop-condition-row--range {
+    grid-template-columns: max-content minmax(220px, 1.2fr) minmax(170px, 1fr) minmax(140px, 0.8fr);
+    align-items: end;
+}
+
+@media (max-width: 680px) {
+    .loop-condition-row--main,
+    .loop-condition-row--range {
+        grid-template-columns: 1fr;
+    }
+}
+
 /* Device Info */
 .device-info {
     background: var(--bg-secondary);
@@ -931,6 +1129,26 @@ tbody tr:hover {
         grid-template-columns: 1fr;
     }
 
+    /* Stack loop mode options on mobile */
+    #loopModeContainer {
+        grid-template-columns: 1fr !important;
+    }
+
+    .loop-mode-option {
+        flex-direction: row !important;
+        text-align: left !important;
+        padding: 14px 18px !important;
+    }
+
+    .loop-mode-option input[type="radio"] {
+        margin-right: 12px !important;
+        margin-bottom: 0 !important;
+    }
+
+    .loop-mode-option > div:first-of-type {
+        flex: 1;
+    }
+
     .container {
         padding: 12px;
         margin-left: 0;
@@ -1087,4 +1305,125 @@ tbody tr:hover {
 .control-card.disabled button,
 .control-card.disabled .slider {
     cursor: not-allowed !important;
+}
+
+/* ─── Chrome Extension Redirect Modal ─── */
+.chrome-modal-backdrop,
+.chrome-modal {
+    display: none;
+}
+
+.chrome-modal-backdrop.active {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.7);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 9998;
+}
+
+.chrome-modal.active {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 9999;
+    background: var(--bg-secondary);
+    border-radius: 24px;
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35);
+    padding: 48px 40px 36px;
+    max-width: 480px;
+    width: 90%;
+    animation: chromeModalIn 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes chromeModalIn {
+    from { opacity: 0; transform: translate(-50%, -45%); }
+    to   { opacity: 1; transform: translate(-50%, -50%); }
+}
+
+.chrome-modal-icon {
+    font-size: 52px;
+    margin-bottom: 16px;
+}
+
+.chrome-modal-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 14px;
+}
+
+.chrome-modal-desc {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 22px;
+}
+
+.chrome-modal-features {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 28px;
+    text-align: left;
+}
+
+.chrome-modal-feature {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    color: var(--text-primary);
+    background: var(--bg-primary);
+    padding: 10px 14px;
+    border-radius: 10px;
+}
+
+.chrome-modal-feature span {
+    font-size: 18px;
+    color: var(--success-color);
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.chrome-modal-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 16px 24px;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 14px;
+    font-size: 16px;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 6px 18px rgba(37, 99, 235, 0.35);
+}
+
+.chrome-modal-btn:hover {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(37, 99, 235, 0.45);
+}
+
+.chrome-modal-btn-icon {
+    font-size: 20px;
+}
+
+.chrome-modal-note {
+    margin-top: 18px;
+    font-size: 13px;
+    color: var(--text-secondary);
 }
