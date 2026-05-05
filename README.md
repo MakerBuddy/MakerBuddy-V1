@@ -1,8 +1,8 @@
-# MakerBuddy V1.0
+# MakerBuddy V1.2
 
 **A comprehensive ESP32-based IoT development kit for makers, hobbyists, and learners**
 
-MakerBuddy V1.0 is an all-in-one IoT learning platform that combines multiple sensors, actuators, and a beautiful web dashboard for real-time monitoring and control. Perfect for electronics enthusiasts, students, and anyone looking to dive into IoT development.
+MakerBuddy V1.2 is an all-in-one IoT learning platform that combines multiple sensors, actuators, and a beautiful web dashboard with real-time WebSocket communication for monitoring and control. Featuring a powerful sequence-based automation engine with 4 loop modes. Perfect for electronics enthusiasts, students, and anyone looking to dive into IoT development.
 
 ## 📋 Repository Contents
 
@@ -31,12 +31,16 @@ MakerBuddy V1.0 is an all-in-one IoT learning platform that combines multiple se
 - **LCD Display (16x2)** - Real-time information display
 
 ### 🤖 Smart Features
-- Real-time sensor data visualization
-- Automation rules engine (IF-THEN logic)
-- WiFi connectivity
-- REST API endpoints
-- Mobile-responsive interface
-- Device information display
+- Real-time sensor data via WebSocket (push-based, no polling)
+- Sequence automation engine with 4 loop modes and up to 10 multi-step rules
+- Priority-based device locking (Condition > Timer > Forever > None)
+- Potentiometer mapping to LED PWM, RGB color wheel, or Servo
+- Soil moisture calibration with NVS persistence
+- OTA (over-the-air) firmware updates with LCD progress
+- WiFi connectivity with mDNS support (`devicename.local`)
+- REST API + WebSocket endpoints for all actuators
+- Mobile-responsive interface with dark/light theme
+- Device information display (MAC, uptime, free memory)
 
 ## 🚀 Getting Started
 
@@ -57,14 +61,14 @@ MakerBuddy V1.0 is an all-in-one IoT learning platform that combines multiple se
    ```
 
 2. **Upload Arduino Code**
-   - Open `Arduino Code/MakerBuddy V1-0.ino` in Arduino IDE
-   - Configure WiFi credentials
+   - Open `Arduino Code/MakerBuddy/MakerBuddy.ino` in Arduino IDE
+   - Configure WiFi credentials (or use the built-in captive portal after upload)
    - Upload to your ESP32 board
 
 3. **Setup Web Dashboard**
    - Copy the `Web Dashboard` folder to your web server
-   - Open `index.html` in your browser
-   - Enter your MakerBuddy IoT Kit ESP32's IP address to connect
+   - Open `index.html` in Firefox, Safari, or Edge
+   - Enter your MakerBuddy IoT Kit ESP32's device name or IP address to connect
 
 ## 📖 Documentation
 
@@ -123,6 +127,44 @@ We welcome contributions! Feel free to:
 - Suggest new features
 - Submit pull requests
 - Share your projects built with MakerBuddy
+
+## 📝 Release Notes
+
+### v1.2 (Current)
+
+**Firmware (Arduino Code)**
+- WebSocket communication replaces HTTP polling for real-time sensor data push
+- Sequence engine rewrite with 4 loop modes: None, Forever, Timer (duration/interval), Condition (sensor-based)
+- Up to 10 sequences with 10 steps each, priority-based device locking, debounced condition evaluation
+- Potentiometer mapping: map pot to LED PWM, RGB color wheel, or Servo position
+- Soil moisture calibration with dry/wet values persisted to NVS
+- OTA firmware updates over-the-air with LCD progress display
+- mDNS support for device discovery via `devicename.local`
+- Direct LEDC servo control eliminates timer conflicts with analogWrite (ESP32Servo no longer required)
+- LCD wildcard support: `{temp}`, `{humidity}`, `{ds18b20}`, `{light}`, `{gas}`, `{soil}`, `{distance}`, `{pot}`, `{motion}`, `{button}`
+- Compact JSON WebSocket protocol for bandwidth efficiency
+- WiFi network scan caching, PMF disable for AP compatibility
+- Ticker-based non-blocking architecture
+
+**Web Dashboard**
+- Real-time WebSocket communication (no more polling)
+- New Rule Engine tab with create/edit/manage workflow and 4 loop modes
+- Multi-step rule editor with up to 10 steps per rule
+- Settings tab for sensor/actuator card visibility and color customization
+- Potentiometer mapping control card (None/LED/RGB/Servo)
+- Soil moisture calibration modal with live ADC capture
+- OTA firmware update UI (check, compare versions, install)
+- Automation indicators: actuator cards show warning banner and disable when controlled by active rules
+- Tab navigation with animated transitions (Dashboard, Rule Engine, Settings)
+- mDNS support with `.local` auto-append in connection input
+- Servo slider throttle (50ms debounce) to prevent flooding
+- Dark/light theme persistence via localStorage
+
+### v1.0
+- Initial release with all sensors and actuators
+- REST API and basic IF-THEN rules
+- WiFi configuration portal
+- Dark/light theme with mobile-responsive design
 
 ## 📄 License
 
