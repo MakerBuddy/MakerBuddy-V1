@@ -1,10 +1,10 @@
 # MakerBuddy Arduino Code
 
-ESP32 firmware for the MakerBuddy V1.2 IoT kit with WebSocket server, sensor management, and sequence-based automation engine.
+ESP32 firmware for the MakerBuddy V1.8 IoT kit with WebSocket server, sensor management, and sequence-based automation engine.
 
 ## 📋 Overview
 
-This Arduino sketch provides a complete IoT solution for the MakerBuddy V1.2 kit, featuring:
+This Arduino sketch provides a complete IoT solution for the MakerBuddy V1.8 kit, featuring:
 - Multi-sensor data acquisition
 - Real-time WebSocket communication (replaces HTTP polling)
 - Actuator control via REST API and WebSocket
@@ -14,8 +14,15 @@ This Arduino sketch provides a complete IoT solution for the MakerBuddy V1.2 kit
 - LCD wildcard support for live sensor values
 - Persistent configuration storage with Preferences/NVS
 
-## 🆕 What's New in v1.2
+## 🆕 What's New in v1.8
 
+- **Optimized NVS Storage** — Dirty bitmask tracking writes only changed sequence slots. Compact format saves ~336-432 bytes per rule by storing only the header and used steps. Orphaned NVS entries (`seq_N`, `seqms_N`) are automatically cleaned up on boot.
+- **ADC Noise Reduction** — 4-read averaging per analog pin (LDR, Potentiometer, MQ-2, Soil Moisture) for cleaner sensor readings.
+- **WiFi Power Saving** — Falls back to `WIFI_OFF` on connection failure instead of staying in AP mode, reducing power consumption.
+- **Relay Delay Protocol** — WebSocket relay command now accepts `od` (onDelay) and `fd` (offDelay) fields for future timed relay support.
+- **Sequence Save Performance** — Per-slot dirty bitmask prevents unnecessary NVS writes, avoiding flash wear and reducing save latency.
+
+### v1.2 Features (also included)
 - **WebSocket Communication** — Real-time bidirectional data push replaces polling. Sensor data streams every 2s, device info on connect, and all actuator commands use compact single-letter JSON.
 - **Sequence Engine (Rule Engine v2)** — Complete rewrite with 10 sequences, each supporting up to 10 steps, 4 loop modes, priority-based device locking, and debounced condition evaluation.
 - **Potentiometer Mapping** — Map the potentiometer to LED PWM, RGB color wheel, or Servo position. Configurable via WebSocket and persisted to NVS.
@@ -195,7 +202,7 @@ Parameters: r (0-255), g (0-255), b (0-255)
 **Relay Control**
 ```
 POST /api/relay
-Parameters: state (bool)
+Parameters: state (bool), onDelay (ms), offDelay (ms)
 ```
 
 **Servo Control**
@@ -266,7 +273,7 @@ The WebSocket server at `/ws` uses compact single-letter JSON keys for efficienc
 |---|---|---|
 | `L` | LED | `{m:"L", s:0\|1, p:0-255, b:0\|1}` |
 | `R` | RGB | `{m:"R", r:0-255, g:0-255, b:0-255}` |
-| `Y` | Relay | `{m:"Y", s:0\|1}` |
+| `Y` | Relay | `{m:"Y", s:0\|1, od:0, fd:0}` |
 | `V` | Servo | `{m:"V", p:0-180}` |
 | `Z` | Buzzer | `{m:"Z", s:1}` |
 | `D` | LCD | `{m:"D", md:0\|1, t1, t2}` |
@@ -275,7 +282,7 @@ The WebSocket server at `/ws` uses compact single-letter JSON keys for efficienc
 | `O` | OTA Update | `{m:"O", u:"firmware_url"}` |
 | `X` | Sequences | `{m:"X", a:0-4, i?, s?}` |
 
-## 🤖 Sequence Engine (v1.2)
+## 🤖 Sequence Engine (v1.8)
 
 The sequence engine replaces the old rules engine with a powerful multi-mode automation system.
 
@@ -360,8 +367,11 @@ Custom LCD text supports wildcards replaced with live sensor values:
 
 ### Persistence
 - Up to 10 sequences stored in individual NVS keys (`seq_0` through `seq_9`)
-- Legacy blob format (`seqBlob`) automatically migrated on first boot
-- Runtime state (running/stopped, current step, timers) is reset on load
+- **Dirty bitmask tracking** — only modified slots are written to NVS, avoiding unnecessary flash wear
+- **Compact format** — stores only the header and used steps instead of the full struct, saving ~336-432 bytes per rule
+- **Orphan cleanup** — stale `seq_N` and `seqms_N` keys for unused slots are automatically removed on boot
+- Legacy blob format (`seqBlob`) automatically migrated to compact format on first boot
+- Runtime state (running/stopped, current step, timers) is sanitized on load
 
 ## 🔆 Potentiometer Mapping
 
@@ -530,7 +540,16 @@ Connect with MakerBuddy:
 
 ## 📝 Version History
 
-### v1.2 (Current)
+### v1.8 (Current)
+- Optimized NVS storage with dirty bitmask tracking — only changed slots written
+- Compact sequence save format (header + used steps, saves ~336-432 bytes per rule)
+- Orphaned NVS entry cleanup (stale `seq_N`/`seqms_N` keys removed on boot)
+- ADC noise reduction: 4-read averaging per analog pin for cleaner readings
+- Relay delay protocol fields (`od`/`fd`) added to WebSocket for future timed relay support
+- WiFi power saving: falls back to `WIFI_OFF` on connection failure
+- Legacy pot mapping string-to-UChar migration
+
+### v1.2
 - WebSocket communication replaces HTTP polling for real-time data
 - Complete sequence engine rewrite with 4 loop modes and multi-step automation
 - Potentiometer mapping to LED/RGB/Servo

@@ -1,9 +1,16 @@
 # MakerBuddy Web Dashboard
 
-A modern, responsive web interface for real-time monitoring and control of the MakerBuddy V1.2 IoT kit via WebSocket.
+A modern, responsive web interface for real-time monitoring and control of the MakerBuddy V1.6 IoT kit via WebSocket.
 
-## 🆕 What's New in v1.2
+## 🆕 What's New in v1.6
 
+- **Push Button Sensor Card** — Live Pressed/Released state display for the onboard push button (also used for WiFi reset).
+- **Relay Delay Protocol** — WebSocket relay messages now include `onDelay`/`offDelay` fields, ready for future timed relay support.
+- **Sidebar State Persistence** — Sidebar open/closed state saved to localStorage across desktop sessions. Smart auto-open on disconnect, auto-collapse on connect for mobile.
+- **Resize-Aware Sidebar** — Debounced window resize handler automatically adjusts sidebar layout for desktop vs mobile transitions.
+- **Backdrop Dismiss** — Tapping the backdrop overlay closes the sidebar on mobile devices.
+
+### v1.2 Features (also included)
 - **WebSocket Communication** — Real-time bidirectional data replaces HTTP polling. Instant sensor updates and actuator control.
 - **Rule Engine Tab** — Complete redesign with create/edit/manage workflow, 4 loop modes, up to 10 steps per rule, timer and condition settings.
 - **Settings Tab** — Customize sensor/actuator card visibility, background colors, and accent colors. All persisted to localStorage.
@@ -79,7 +86,7 @@ Web Dashboard/
 ### Prerequisites
 - Web server (Apache, XAMPP, or any HTTP server)
 - Modern web browser (Firefox, Safari, Edge recommended)
-- ESP32 device running MakerBuddy v1.2 firmware
+- ESP32 device running MakerBuddy firmware
 - Both devices on the same network
 
 ### Installation
@@ -268,7 +275,14 @@ Stay connected with MakerBuddy:
 
 ## 📝 Version History
 
-### v1.2 (Current)
+### v1.6 (Current)
+- Push button sensor card with live Pressed/Released state display
+- Relay delay protocol fields (`onDelay`/`offDelay`) ready for future timed relay
+- Sidebar state persistence across desktop sessions (localStorage)
+- Debounced resize handler for desktop/mobile sidebar transitions
+- Backdrop dismiss (tap overlay to close sidebar on mobile)
+
+### v1.2
 - WebSocket communication replaces HTTP polling
 - Rule Engine tab with create/edit/manage workflow and 4 loop modes
 - Multi-step rules (up to 10 steps) with priority-based device locking

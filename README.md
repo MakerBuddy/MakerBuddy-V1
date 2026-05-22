@@ -1,8 +1,8 @@
-# MakerBuddy V1.2
+# MakerBuddy V1.8
 
 **A comprehensive ESP32-based IoT development kit for makers, hobbyists, and learners**
 
-MakerBuddy V1.2 is an all-in-one IoT learning platform that combines multiple sensors, actuators, and a beautiful web dashboard with real-time WebSocket communication for monitoring and control. Featuring a powerful sequence-based automation engine with 4 loop modes. Perfect for electronics enthusiasts, students, and anyone looking to dive into IoT development.
+MakerBuddy V1.8 is an all-in-one IoT learning platform that combines multiple sensors, actuators, and a beautiful web dashboard with real-time WebSocket communication for monitoring and control. Featuring a powerful sequence-based automation engine with 4 loop modes. Perfect for electronics enthusiasts, students, and anyone looking to dive into IoT development.
 
 ## 📋 Repository Contents
 
@@ -130,9 +130,27 @@ We welcome contributions! Feel free to:
 
 ## 📝 Release Notes
 
-### v1.2 (Current)
+### v1.8 (Current)
 
 **Firmware (Arduino Code)**
+- Optimized NVS storage with dirty bitmask tracking — only changed sequence slots are written
+- Compact sequence save format (header + used steps, saves ~336-432 bytes per rule)
+- Orphaned NVS entry cleanup (`seq_N`/`seqms_N` keys for unused slots removed on boot)
+- ADC noise reduction: 4-read averaging per analog pin (LDR, Pot, MQ-2, Soil Moisture)
+- WiFi power saving: falls back to WIFI_OFF on connection failure
+- Relay delay protocol fields (`od`/`fd`) added to WebSocket for future timed relay support
+- Legacy pot mapping string-to-UChar migration
+
+**Web Dashboard (v1.6)**
+- Push button sensor card with live Pressed/Released state display
+- Relay delay protocol ready (`onDelay`/`offDelay` fields in WebSocket)
+- Sidebar state persistence across sessions (localStorage), smart show/hide on mobile
+- Debounced resize handler for desktop/mobile sidebar transitions
+- Backdrop dismiss — tap overlay to close sidebar on mobile
+
+### v1.2
+
+**Firmware (Arduino Code v1.2)**
 - WebSocket communication replaces HTTP polling for real-time sensor data push
 - Sequence engine rewrite with 4 loop modes: None, Forever, Timer (duration/interval), Condition (sensor-based)
 - Up to 10 sequences with 10 steps each, priority-based device locking, debounced condition evaluation
@@ -146,7 +164,7 @@ We welcome contributions! Feel free to:
 - WiFi network scan caching, PMF disable for AP compatibility
 - Ticker-based non-blocking architecture
 
-**Web Dashboard**
+**Web Dashboard (v1.2)**
 - Real-time WebSocket communication (no more polling)
 - New Rule Engine tab with create/edit/manage workflow and 4 loop modes
 - Multi-step rule editor with up to 10 steps per rule

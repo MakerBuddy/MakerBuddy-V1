@@ -3,8 +3,8 @@
  *
  * Website: https://makerbuddy.cc
  * Email: info@makerbuddy.cc
- * Version: 1.2
- * Release Date: 20 Apr 2026
+ * Version: 1.8
+ * Release Date: 19 May 2026
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,7 +43,7 @@
 #include "esp_wifi.h"
 
 // Firmware Version
-#define FIRMWARE_VERSION "1.2"
+#define FIRMWARE_VERSION "1.8"
 
 // WiFi credentials - will be overridden by saved preferences
 const char *ssid = "";
@@ -155,6 +155,9 @@ volatile bool readSensorsFlag = false;
 volatile bool updateLCDFlag = false;
 volatile bool handleLEDBlinkFlag = false;
 volatile bool saveSequencesFlag = false;
+volatile bool saveSeqCountChanged = false;     // seqCount needs updating
+volatile uint16_t saveSeqDirtyMask = 0;        // bitmask: which seq_X slots to write
+volatile uint16_t saveSeqRemoveMask = 0;       // bitmask: which seq_X slots to remove
 volatile bool buzzerOffFlag = false;
 
 SeqAction seqActionFromString(const String &s) {
@@ -367,6 +370,9 @@ const char *seqRangeOpToString(SeqRangeOp r) {
 const int MAX_SEQUENCES = 10;
 Sequence sequences[MAX_SEQUENCES];
 int sequenceCount = 0;
+// Runtime-only: true while a condition sequence is finishing its last cycle
+// before stopping (condition went false mid-cycle — avoids leaving devices ON)
+bool seqFinishing[MAX_SEQUENCES] = {false};
 
 const float MAX_ULTRASONIC_DISTANCE_CM = 500.0;
 
@@ -424,6 +430,7 @@ void setRelayWithDelay(bool state);
 int computeSoilMoisturePercent(int raw);
 void loadSequences();
 void saveSequences();
+void saveAllSequences();
 void clearSequenceNVS(int index);
 void processSequences();
 void executeSequenceStep(SequenceStep step);
@@ -529,6 +536,8 @@ void setup() {
   Serial.begin(115200);
 
   preferences.begin("iot-kit", false);
+  Serial.printf("[NVS] sizeof(Sequence)=%u, sizeof(SequenceStep)=%u\n",
+                (unsigned)sizeof(Sequence), (unsigned)sizeof(SequenceStep));
 
   pinMode(PUSH_BUTTON_PIN, INPUT_PULLUP);
   pinMode(SINGLE_LED_PIN, OUTPUT);
@@ -1096,6 +1105,7 @@ void setupWebServer() {
 
       if (action == "add" && sequenceCount < MAX_SEQUENCES) {
         Sequence newSeq;
+        memset(&newSeq, 0, sizeof(newSeq)); // zero-init to avoid garbage in unused fields
         newSeq.enabled =
             request->hasParam("enabled", true)
                 ? request->getParam("enabled", true)->value() == "true"
@@ -1221,7 +1231,26 @@ void setupWebServer() {
 
         sequences[sequenceCount] = newSeq;
         sequenceCount++;
+        // Mark only the new slot dirty + update count
+        saveSeqDirtyMask |= (1 << (sequenceCount - 1));
+        saveSeqCountChanged = true;
         saveSequencesFlag = true;
+
+        // Auto-start non-condition sequences immediately on creation
+        {
+          int idx = sequenceCount - 1;
+          Sequence &ns = sequences[idx];
+          if ((SeqLoopMode)ns.loopMode != SLM_CONDITION && ns.enabled &&
+              ns.stepCount > 0) {
+            ns.isRunning = true;
+            ns.lastStepTime = millis();
+            if ((SeqLoopMode)ns.loopMode == SLM_TIMER) {
+              ns.loopStartTime = millis();
+              ns.lastIntervalTime = millis();
+            }
+            executeSequenceStep(ns.steps[0]);
+          }
+        }
 
         request->send(
             200, "application/json",
@@ -1232,8 +1261,21 @@ void setupWebServer() {
           sequences[index].isRunning = false;
           for (int i = index; i < sequenceCount - 1; i++) {
             sequences[i] = sequences[i + 1];
+            String nextKey = "seqms_" + String(i + 1);
+            if (preferences.isKey(nextKey.c_str()))
+              preferences.putBool(("seqms_" + String(i)).c_str(),
+                                  preferences.getBool(nextKey.c_str(), false));
+            else
+              preferences.remove(("seqms_" + String(i)).c_str());
           }
+          preferences.remove(("seqms_" + String(sequenceCount - 1)).c_str());
           sequenceCount--;
+          // Delete shifts all indices from 'index' onward — mark them dirty
+          for (int j = index; j < sequenceCount; j++)
+            saveSeqDirtyMask |= (1 << j);
+          // Remove the now-unused last slot from NVS
+          saveSeqRemoveMask |= (1 << sequenceCount);
+          saveSeqCountChanged = true;
           saveSequencesFlag = true;
           request->send(
               200, "application/json",
@@ -1249,7 +1291,8 @@ void setupWebServer() {
           sequences[index].currentStep = 0;
           sequences[index].lastStepTime = millis();
           sequences[index].manuallyStopped = false;
-          saveSequencesFlag = true;
+          preferences.remove(("seqms_" + String(index)).c_str());
+          // manuallyStopped is persisted via seqms_ key, no blob rewrite needed
           if (sequences[index].loopMode == SLM_TIMER) {
             sequences[index].loopStartTime = millis();
             sequences[index].lastIntervalTime = millis();
@@ -1268,7 +1311,9 @@ void setupWebServer() {
           sequences[index].isRunning = false;
           sequences[index].currentStep = 0;
           sequences[index].manuallyStopped = true;
-          saveSequencesFlag = true;
+          seqFinishing[index] = false;
+          preferences.putBool(("seqms_" + String(index)).c_str(), true);
+          // manuallyStopped is persisted via seqms_ key, no blob rewrite needed
           request->send(
               200, "application/json",
               "{\"status\":\"success\",\"message\":\"Sequence stopped\"}");
@@ -1277,6 +1322,7 @@ void setupWebServer() {
         int index = request->getParam("index", true)->value().toInt();
         if (index >= 0 && index < sequenceCount) {
           sequences[index].enabled = !sequences[index].enabled;
+          saveSeqDirtyMask |= (1 << index);
           saveSequencesFlag = true;
           request->send(
               200, "application/json",
@@ -1646,6 +1692,7 @@ void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client,
       JsonObject s = doc["s"];
       if (!s.isNull()) {
         Sequence newSeq;
+        memset(&newSeq, 0, sizeof(newSeq)); // zero-init to avoid garbage in unused fields
         newSeq.enabled = (s["e"] | 1) == 1;
 
         String nameStr = String((const char *)(s["n"] | "New Sequence"));
@@ -1710,20 +1757,55 @@ void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client,
 
         sequences[sequenceCount] = newSeq;
         sequenceCount++;
+        // Mark only the new slot dirty + update count
+        saveSeqDirtyMask |= (1 << (sequenceCount - 1));
+        saveSeqCountChanged = true;
         saveSequencesFlag = true;
+
+        // Auto-start non-condition sequences immediately on creation
+        {
+          int idx = sequenceCount - 1;
+          Sequence &ns = sequences[idx];
+          if ((SeqLoopMode)ns.loopMode != SLM_CONDITION && ns.enabled &&
+              ns.stepCount > 0) {
+            ns.isRunning = true;
+            ns.lastStepTime = millis();
+            if ((SeqLoopMode)ns.loopMode == SLM_TIMER) {
+              ns.loopStartTime = millis();
+              ns.lastIntervalTime = millis();
+            }
+            executeSequenceStep(ns.steps[0]);
+          }
+        }
       }
     } else if (action == 1 && index >= 0 && index < sequenceCount) {
       sequences[index].isRunning = false;
-      for (int i = index; i < sequenceCount - 1; i++)
+      for (int i = index; i < sequenceCount - 1; i++) {
         sequences[i] = sequences[i + 1];
+        // Shift compact stopped-key down to match new index
+        String nextKey = "seqms_" + String(i + 1);
+        if (preferences.isKey(nextKey.c_str()))
+          preferences.putBool(("seqms_" + String(i)).c_str(),
+                              preferences.getBool(nextKey.c_str(), false));
+        else
+          preferences.remove(("seqms_" + String(i)).c_str());
+      }
+      preferences.remove(("seqms_" + String(sequenceCount - 1)).c_str());
       sequenceCount--;
+      // Delete shifts all indices from 'index' onward — mark them dirty
+      for (int j = index; j < sequenceCount; j++)
+        saveSeqDirtyMask |= (1 << j);
+      // Remove the now-unused last slot from NVS
+      saveSeqRemoveMask |= (1 << sequenceCount);
+      saveSeqCountChanged = true;
       saveSequencesFlag = true;
     } else if (action == 2 && index >= 0 && index < sequenceCount) {
       sequences[index].isRunning = true;
       sequences[index].currentStep = 0;
       sequences[index].lastStepTime = millis();
       sequences[index].manuallyStopped = false;
-      saveSequencesFlag = true;
+      preferences.remove(("seqms_" + String(index)).c_str());
+      // manuallyStopped is persisted via seqms_ key, no blob rewrite needed
       if (sequences[index].loopMode == SLM_TIMER) {
         sequences[index].loopStartTime = millis();
         sequences[index].lastIntervalTime = millis();
@@ -1736,9 +1818,12 @@ void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client,
       sequences[index].isRunning = false;
       sequences[index].currentStep = 0;
       sequences[index].manuallyStopped = true;
-      saveSequencesFlag = true;
+      seqFinishing[index] = false;
+      preferences.putBool(("seqms_" + String(index)).c_str(), true);
+      // manuallyStopped is persisted via seqms_ key, no blob rewrite needed
     } else if (action == 4 && index >= 0 && index < sequenceCount) {
       sequences[index].enabled = !sequences[index].enabled;
+      saveSeqDirtyMask |= (1 << index);
       saveSequencesFlag = true;
     }
 
@@ -2157,11 +2242,16 @@ void readSensors() {
     sensorData.ds18b20Temp = ds18b20Reading;
   }
 
-  // Convert analog readings (0-4095) to percentage (0-100)
-  sensorData.lightLevel = map(analogRead(LDR_PIN), 0, 4095, 0, 100);
-  sensorData.potValue = map(analogRead(POTENTIOMETER_PIN), 0, 4095, 0, 100);
-  sensorData.gasLevel = map(analogRead(MQ2_PIN), 0, 4095, 0, 100);
-  sensorData.soilRaw = analogRead(SOIL_MOISTURE_PIN);
+  // Average 4 reads per pin to reduce ESP32 ADC noise
+  auto readAvg = [](int pin) -> int {
+    int s = 0;
+    for (int k = 0; k < 4; k++) s += analogRead(pin);
+    return s / 4;
+  };
+  sensorData.lightLevel = map(readAvg(LDR_PIN), 0, 4095, 0, 100);
+  sensorData.potValue = map(readAvg(POTENTIOMETER_PIN), 0, 4095, 0, 100);
+  sensorData.gasLevel = map(readAvg(MQ2_PIN), 0, 4095, 0, 100);
+  sensorData.soilRaw = readAvg(SOIL_MOISTURE_PIN);
   sensorData.soilMoisture = computeSoilMoisturePercent(sensorData.soilRaw);
 
   sensorData.buttonPressed = !digitalRead(PUSH_BUTTON_PIN);
@@ -2282,9 +2372,9 @@ void updateLCD() {
       lcd.clear();
       // if (customLcdText1.length() <= 16) {
       lcd.setCursor(0, 0);
-      lcd.print(customLcdText1);
+      lcd.print(replaceWildcards(customLcdText1));
       lcd.setCursor(0, 1);
-      lcd.print(customLcdText2);
+      lcd.print(replaceWildcards(customLcdText2));
       //}
       lastUpdate = millis();
     }
@@ -2351,53 +2441,168 @@ void updateLCD() {
 }
 
 void saveSequences() {
-  preferences.putInt("seqCount", sequenceCount);
+  // Only write what actually changed — avoids NVS fragmentation that occurs
+  // when all 10 slots are pre-deleted and rewritten on every single save.
+  // With the 20KB NVS partition (5 pages, ~504 entries), rewriting all slots
+  // creates too many erased entries and exhausts pages before compaction
+  // can reclaim them.
 
-  // Save each sequence individually to avoid NVS blob size limits
+  if (saveSeqCountChanged) {
+    saveSeqCountChanged = false;
+    size_t ret = preferences.putInt("seqCount", sequenceCount);
+    Serial.printf("[NVS SAVE] seqCount=%d (ret=%u)\n",
+                  sequenceCount, (unsigned)ret);
+  }
+
+  // Remove slots that became unused (e.g. after a delete that shifts indices)
+  uint16_t rmMask = saveSeqRemoveMask;
+  saveSeqRemoveMask = 0;
   for (int i = 0; i < MAX_SEQUENCES; i++) {
-    String key = "seq_" + String(i);
-    if (i < sequenceCount) {
-      preferences.putBytes(key.c_str(), &sequences[i], sizeof(Sequence));
-    } else {
-      // Remove unused slots to keep NVS clean
+    if (rmMask & (1 << i)) {
+      String key = "seq_" + String(i);
       if (preferences.isKey(key.c_str())) {
         preferences.remove(key.c_str());
+        Serial.printf("[NVS SAVE] Removed %s\n", key.c_str());
       }
+    }
+  }
+
+  // Write only the dirty slots — using COMPACT format:
+  // [header: offsetof(Sequence,steps) bytes][used steps only][stepCount as int]
+  // This saves ~336-432 bytes per rule vs storing all 10 step slots.
+  uint16_t dirtyMask = saveSeqDirtyMask;
+  saveSeqDirtyMask = 0;
+  const size_t headerSize = offsetof(Sequence, steps);
+  for (int i = 0; i < MAX_SEQUENCES; i++) {
+    if (!(dirtyMask & (1 << i)))
+      continue;
+    if (i >= sequenceCount)
+      continue; // stale dirty bit, slot no longer active
+
+    String key = "seq_" + String(i);
+    Sequence &seq = sequences[i];
+    size_t usedStepsSize = seq.stepCount * sizeof(SequenceStep);
+    size_t compactSize = headerSize + usedStepsSize + sizeof(int);
+
+    // Build compact buffer on stack (sizeof(Sequence) is always >= max compact size)
+    uint8_t buf[sizeof(Sequence)];
+    memcpy(buf, &seq, headerSize);                             // header fields
+    memcpy(buf + headerSize, seq.steps, usedStepsSize);        // only used steps
+    int sc = seq.stepCount;
+    memcpy(buf + headerSize + usedStepsSize, &sc, sizeof(int)); // stepCount
+
+    size_t written = preferences.putBytes(key.c_str(), buf, compactSize);
+    if (written != compactSize) {
+      Serial.printf("[NVS SAVE ERROR] %s: wrote %u/%u bytes, retrying...\n",
+                    key.c_str(), (unsigned)written, (unsigned)compactSize);
+      // Free the old entry first and retry
+      preferences.remove(key.c_str());
+      written = preferences.putBytes(key.c_str(), buf, compactSize);
+      if (written != compactSize) {
+        Serial.printf("[NVS SAVE ERROR] %s: retry also failed (%u/%u)\n",
+                      key.c_str(), (unsigned)written, (unsigned)compactSize);
+      } else {
+        Serial.printf("[NVS SAVE OK] %s: retry succeeded\n", key.c_str());
+      }
+    } else {
+      Serial.printf("[NVS SAVE OK] %s: '%s' (%d steps, %u bytes)\n",
+                    key.c_str(), seq.name, seq.stepCount, (unsigned)compactSize);
     }
   }
 }
 
+// Helper: mark ALL slots dirty — used only during legacy migration
+void saveAllSequences() {
+  saveSeqCountChanged = true;
+  saveSeqDirtyMask = 0;
+  for (int i = 0; i < sequenceCount; i++) {
+    saveSeqDirtyMask |= (1 << i);
+  }
+  // Remove any slots beyond current count
+  for (int i = sequenceCount; i < MAX_SEQUENCES; i++) {
+    saveSeqRemoveMask |= (1 << i);
+  }
+  saveSequences();
+}
+
+
 void loadSequences() {
-  // Try to load from new individual keys first
   int count = preferences.getInt("seqCount", 0);
+  Serial.printf("[NVS LOAD] seqCount=%d, sizeof(Sequence)=%u\n",
+                count, (unsigned)sizeof(Sequence));
   if (count > MAX_SEQUENCES)
     count = MAX_SEQUENCES;
 
+  const size_t headerSize = offsetof(Sequence, steps);
   sequenceCount = 0;
+
   for (int i = 0; i < count; i++) {
     if (sequenceCount >= MAX_SEQUENCES)
       break;
     String key = "seq_" + String(i);
-    size_t len = preferences.getBytes(key.c_str(), &sequences[sequenceCount],
-                                      sizeof(Sequence));
+
+    // Read into raw buffer to detect format before populating sequence
+    uint8_t buf[sizeof(Sequence)];
+    memset(buf, 0, sizeof(buf));
+    size_t len = preferences.getBytes(key.c_str(), buf, sizeof(buf));
+
+    bool loaded = false;
 
     if (len == sizeof(Sequence)) {
-      // SANITIZE: Reset runtime state to prevent "ghost" running or invalid
-      // timers
+      // OLD format: full struct blob — direct copy
+      memcpy(&sequences[sequenceCount], buf, sizeof(Sequence));
+      Serial.printf("[NVS LOAD OK] %s: '%s' (%d steps) [old format, %u bytes]\n",
+                    key.c_str(), sequences[sequenceCount].name,
+                    sequences[sequenceCount].stepCount, (unsigned)len);
+      loaded = true;
+    } else if (len >= headerSize + sizeof(int)) {
+      // COMPACT format: [header][used steps][stepCount as int]
+      int sc;
+      memcpy(&sc, buf + len - sizeof(int), sizeof(int));
+      size_t expectedSize = headerSize + sc * sizeof(SequenceStep) + sizeof(int);
+      if (sc >= 0 && sc <= 10 && len == expectedSize) {
+        memset(&sequences[sequenceCount], 0, sizeof(Sequence));
+        memcpy(&sequences[sequenceCount], buf, headerSize);  // header fields
+        memcpy(sequences[sequenceCount].steps, buf + headerSize,
+               sc * sizeof(SequenceStep));                    // used steps
+        sequences[sequenceCount].stepCount = sc;
+        Serial.printf(
+            "[NVS LOAD OK] %s: '%s' (%d steps) [compact, %u bytes]\n",
+            key.c_str(), sequences[sequenceCount].name, sc, (unsigned)len);
+        loaded = true;
+      } else {
+        Serial.printf(
+            "[NVS LOAD ERROR] %s: compact validation failed "
+            "(len=%u, sc=%d, expected=%u)\n",
+            key.c_str(), (unsigned)len, sc, (unsigned)expectedSize);
+      }
+    } else if (len > 0) {
+      Serial.printf("[NVS LOAD ERROR] %s: unknown format (%u bytes)\n",
+                    key.c_str(), (unsigned)len);
+    }
+
+    if (loaded) {
+      // SANITIZE: Reset runtime state
       sequences[sequenceCount].isRunning = false;
       sequences[sequenceCount].currentStep = 0;
       sequences[sequenceCount].lastStepTime = 0;
       sequences[sequenceCount].loopStartTime = 0;
-
       sequences[sequenceCount].lastIntervalTime = 0;
       sequences[sequenceCount].conditionInit = false;
       sequences[sequenceCount].conditionRaw = false;
       sequences[sequenceCount].conditionRawSince = 0;
       sequences[sequenceCount].conditionDebounced = false;
 
+      // Override manuallyStopped from compact key if present
+      {
+        String msKey = "seqms_" + String(sequenceCount);
+        if (preferences.isKey(msKey.c_str())) {
+          sequences[sequenceCount].manuallyStopped =
+              preferences.getBool(msKey.c_str(), false);
+        }
+      }
+
       sequenceCount++;
-    } else {
-      Serial.printf("Failed to load sequence key %s\n", key.c_str());
     }
   }
 
@@ -2405,29 +2610,57 @@ void loadSequences() {
   if (sequenceCount == 0 && count > 0) {
     size_t len = preferences.getBytes("seqBlob", sequences, sizeof(sequences));
     if (len == sizeof(sequences)) {
-      Serial.println("Migrating sequences from binary blob...");
+      Serial.println("[NVS] Migrating from legacy blob...");
       sequenceCount = count;
-      // Sanitize loaded blob data
       for (int i = 0; i < sequenceCount; i++) {
         sequences[i].isRunning = false;
         sequences[i].currentStep = 0;
         sequences[i].lastStepTime = 0;
         sequences[i].loopStartTime = 0;
-
         sequences[i].lastIntervalTime = 0;
         sequences[i].conditionInit = false;
         sequences[i].conditionRaw = false;
         sequences[i].conditionRawSince = 0;
         sequences[i].conditionDebounced = false;
       }
-      // Save in new format immediately
-      saveSequences();
-      // Remove old blob
+      saveAllSequences();
       preferences.remove("seqBlob");
     }
   }
 
-  Serial.printf("Loaded %d sequences\n", sequenceCount);
+  // CLEANUP: Remove orphaned NVS entries from old firmware versions
+  bool cleanedUp = false;
+  for (int i = 0; i < MAX_SEQUENCES; i++) {
+    String key = "seq_" + String(i);
+    String msKey = "seqms_" + String(i);
+    if (i >= sequenceCount) {
+      if (preferences.isKey(key.c_str())) {
+        Serial.printf("[NVS CLEANUP] Removing orphaned %s\n", key.c_str());
+        preferences.remove(key.c_str());
+        cleanedUp = true;
+      }
+      if (preferences.isKey(msKey.c_str())) {
+        preferences.remove(msKey.c_str());
+        cleanedUp = true;
+      }
+    }
+  }
+  if (preferences.isKey("seqBlob")) {
+    Serial.println("[NVS CLEANUP] Removing legacy seqBlob");
+    preferences.remove("seqBlob");
+    cleanedUp = true;
+  }
+  if (count != sequenceCount) {
+    preferences.putInt("seqCount", sequenceCount);
+    Serial.printf("[NVS CLEANUP] Updated seqCount: %d -> %d\n",
+                  count, sequenceCount);
+    cleanedUp = true;
+  }
+  if (cleanedUp) {
+    Serial.println("[NVS CLEANUP] Orphaned entries removed, NVS space freed");
+  }
+
+  Serial.printf("[NVS] Loaded %d sequences total\n", sequenceCount);
 }
 
 // Sequence loop condition - uses unified condition evaluation engine (same as
@@ -2490,6 +2723,7 @@ void processSequences() {
             seq.isRunning = false;
             seq.currentStep = 0;
           }
+          seqFinishing[i] = false;
           continue;
         }
 
@@ -2502,6 +2736,7 @@ void processSequences() {
           if (seq.stepCount <= 0) {
             continue;
           }
+          seqFinishing[i] = false;
           seq.isRunning = true;
           seq.currentStep = 0;
           seq.lastStepTime = millis();
@@ -2509,15 +2744,16 @@ void processSequences() {
             executeSequenceStepWithPriority(seq.steps[0], deviceLocked);
           }
           continue; // Will process steps on next cycle
-        } else if (!conditionMet && seq.isRunning) {
-          // Auto-stop: condition became false
-          seq.isRunning = false;
-          seq.currentStep = 0;
-          continue;
+        } else if (!conditionMet && seq.isRunning && !seqFinishing[i]) {
+          // Condition became false — don't stop immediately; let the current
+          // cycle finish so the last step (e.g. buzzer OFF) still executes
+          seqFinishing[i] = true;
+          // Fall through to step execution to continue the current cycle
         } else if (!conditionMet && !seq.isRunning) {
+          seqFinishing[i] = false;
           continue; // Waiting for condition to be met
         }
-        // If conditionMet && isRunning, fall through to step execution
+        // If conditionMet && isRunning, OR finishing last cycle, fall through
       }
 
       // Skip if not running (timer/forever/none need manual start or autostart)
@@ -2566,7 +2802,13 @@ void processSequences() {
           bool shouldLoop = false;
 
           if (mode == SLM_CONDITION) {
-            shouldLoop = true;
+            if (seqFinishing[i]) {
+              // Condition went false — cycle is now complete, stop cleanly
+              seqFinishing[i] = false;
+              shouldLoop = false;
+            } else {
+              shouldLoop = true;
+            }
           } else if (mode == SLM_FOREVER) {
             shouldLoop = true;
           } else if (mode == SLM_TIMER) {
@@ -2583,23 +2825,16 @@ void processSequences() {
             } else {
               shouldLoop = seq.loop;
             }
-
-            if (shouldLoop) {
-              seq.currentStep = 0;
-            } else {
-              seq.isRunning = false;
-              seq.currentStep = 0;
-              continue;
-            }
           }
 
-          if (seq.currentStep < seq.stepCount) {
-            // Execute the first step of the new loop
-            Serial.printf("[SEQ %d] Looping. Executing step %d\n", i,
-                          seq.currentStep);
-            executeSequenceStepWithPriority(seq.steps[seq.currentStep],
-                                            deviceLocked);
+          if (shouldLoop) {
+            seq.currentStep = 0;
+            Serial.printf("[SEQ %d] Looping. Executing step 0\n", i);
+            executeSequenceStepWithPriority(seq.steps[0], deviceLocked);
             seq.lastStepTime = currentTime;
+          } else {
+            seq.isRunning = false;
+            seq.currentStep = 0;
           }
         } else {
           // Execute the next step
@@ -2610,16 +2845,16 @@ void processSequences() {
         }
       }
 
-      // After processing this priority level, lock devices used by its running
-      // sequences. This prevents lower priority sequences from overriding
-      // higher priority ones.
-      for (int i = 0; i < sequenceCount; i++) {
-        if (!sequences[i].enabled)
-          continue;
-        if ((SeqLoopMode)sequences[i].loopMode != mode)
-          continue;
-        markSequenceDevices(sequences[i], deviceLocked);
-      }
+    }
+
+    // After all sequences of this priority level are processed, lock their
+    // devices. This prevents lower-priority sequences from overriding them.
+    for (int i = 0; i < sequenceCount; i++) {
+      if (!sequences[i].enabled)
+        continue;
+      if ((SeqLoopMode)sequences[i].loopMode != mode)
+        continue;
+      markSequenceDevices(sequences[i], deviceLocked);
     }
   }
 }

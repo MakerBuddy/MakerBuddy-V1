@@ -5,8 +5,8 @@
   Copyright (C) 2024 Muhammad Afzal
   Website: https://makerbuddy.cc
   Email: info@makerbuddy.cc
-  Version: 1.1
-  Release Date: 2 Feb 2026
+  Version: 1.6
+  Release Date: 19 May 2026
  
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -181,6 +181,7 @@
             <div class="grid-5 mb-20" id="sensorsGrid">
                 <!-- Temperature DHT -->
                 <div class="sensor-card" data-sensor="temp_dht">
+                    <button class="card-info-btn" data-img="images/lecture-images/02-makerbuddy-DHT.png" data-title="DHT Sensor – Temperature &amp; Humidity" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
                     <div class="sensor-icon">🌡️</div>
                     <div class="sensor-label">Temperature (DHT)</div>
                     <div class="sensor-value" id="temperature">--</div>
@@ -189,6 +190,7 @@
 
                 <!-- Humidity -->
                 <div class="sensor-card" data-sensor="humidity">
+                    <button class="card-info-btn" data-img="images/lecture-images/02-makerbuddy-DHT.png" data-title="DHT Sensor – Temperature &amp; Humidity" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
                     <div class="sensor-icon">💧</div>
                     <div class="sensor-label">Humidity</div>
                     <div class="sensor-value" id="humidity">--</div>
@@ -197,6 +199,7 @@
 
                 <!-- Temperature DS18B20 -->
                 <div class="sensor-card" data-sensor="temp_ds18b20">
+                    <button class="card-info-btn" data-img="images/lecture-images/01-makerbuddy-DS18B20.png" data-title="DS18B20 Temperature Sensor" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
                     <div class="sensor-icon">🌡️</div>
                     <div class="sensor-label">Temperature (DS18B20)</div>
                     <div class="sensor-value" id="ds18b20Temp">--</div>
@@ -205,6 +208,7 @@
 
                 <!-- Light Level -->
                 <div class="sensor-card" data-sensor="light">
+                    <button class="card-info-btn" data-img="images/lecture-images/03-MakerBuddy-On-Board-ldr.png" data-title="LDR Light Sensor (On-Board)" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
                     <div class="sensor-icon">💡</div>
                     <div class="sensor-label">Light Level</div>
                     <div class="sensor-value" id="lightLevel">--</div>
@@ -213,6 +217,7 @@
 
                 <!-- Gas Level -->
                 <div class="sensor-card" data-sensor="gas">
+                    <button class="card-info-btn" data-img="images/lecture-images/03-makerbuddy-mq-2-smoke-sensor.png" data-title="MQ-2 Gas / Smoke Sensor" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
                     <div class="sensor-icon">💨</div>
                     <div class="sensor-label">Gas Level (MQ-2)</div>
                     <div class="sensor-value" id="gasLevel">--</div>
@@ -221,6 +226,7 @@
 
                 <!-- Soil Moisture -->
                 <div class="sensor-card" data-sensor="soil">
+                    <button class="card-info-btn" data-img="images/lecture-images/04-makerbuddy-soil-moisture-sensor.png" data-title="Soil Moisture Sensor" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
                     <button type="button" class="sensor-settings-btn" id="soilMoistureSettingsBtn"
                         title="Calibrate">⚙️</button>
                     <div class="sensor-icon">🌱</div>
@@ -231,6 +237,7 @@
 
                 <!-- Potentiometer -->
                 <div class="sensor-card" data-sensor="pot">
+                    <button class="card-info-btn" data-img="images/lecture-images/06-MakerBuddy-On-Board-Potentiometer.png" data-title="Potentiometer (On-Board)" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
                     <div class="sensor-icon">🎚️</div>
                     <div class="sensor-label">Potentiometer</div>
                     <div class="sensor-value" id="potValue">--</div>
@@ -239,6 +246,7 @@
 
                 <!-- Distance CM -->
                 <div class="sensor-card" data-sensor="distance">
+                    <button class="card-info-btn" data-img="images/lecture-images/09-makerbuddy-hc-sr04-range-sensor.png" data-title="HC-SR04 Ultrasonic Range Sensor" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
                     <div class="sensor-icon">📏</div>
                     <div class="sensor-label">Distance</div>
                     <div class="sensor-value" id="distanceCm">--</div>
@@ -247,6 +255,7 @@
 
                 <!-- Motion Sensor -->
                 <div class="sensor-card" data-sensor="motion">
+                    <button class="card-info-btn" data-img="images/lecture-images/05-makerbuddy-pir-motion-sensor-hc-sr501.png" data-title="PIR Motion Sensor (HC-SR501)" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
                     <div class="sensor-icon">🚶</div>
                     <div class="sensor-label">Motion Sensor</div>
                     <div class="sensor-value" id="motionStatus" style="font-size: 20px;">No Motion</div>
@@ -254,6 +263,7 @@
 
                 <!-- Push Button -->
                 <div class="sensor-card" data-sensor="button">
+                    <button class="card-info-btn" data-img="images/lecture-images/01-MakerBuddy-On-Board-Push-Button.png" data-title="Push Button (On-Board)" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
                     <div class="sensor-icon">🔘</div>
                     <div class="sensor-label">Push Button</div>
                     <div class="sensor-value" id="buttonStatus" style="font-size: 20px;">Released</div>
@@ -267,6 +277,7 @@
                     <div class="control-header">
                         <div class="control-icon">💡</div>
                         <div class="control-title">LED Control</div>
+                        <button class="card-info-btn" data-img="images/lecture-images/04-MakerBuddy-On-Board-LED.png" data-title="LED (On-Board)" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
                     </div>
                     <div class="automation-warning hidden" id="ledWarning">
                         <span style="font-size: 20px;">⚠️</span>
@@ -294,6 +305,7 @@
                     <div class="control-header">
                         <div class="control-icon">🎨</div>
                         <div class="control-title">RGB LED</div>
+                        <button class="card-info-btn" data-img="images/lecture-images/02-MakerBuddy-On-Board-rgb-led.png" data-title="RGB LED (On-Board)" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
                     </div>
                     <div class="automation-warning hidden" id="rgbWarning">
                         <span style="font-size: 20px;">⚠️</span>
@@ -324,6 +336,7 @@
                     <div class="control-header">
                         <div class="control-icon">⚡</div>
                         <div class="control-title">Relay</div>
+                        <button class="card-info-btn" data-img="images/lecture-images/07-makerbuddy-single-channel-relay.png" data-title="Single Channel Relay Module" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
                     </div>
                     <div class="automation-warning hidden" id="relayWarning">
                         <span style="font-size: 20px;">⚠️</span>
@@ -346,6 +359,7 @@
                     <div class="control-header">
                         <div class="control-icon">🎚️</div>
                         <div class="control-title">Potentiometer Mapping</div>
+                        <button class="card-info-btn" data-img="images/lecture-images/06-MakerBuddy-On-Board-Potentiometer.png" data-title="Potentiometer (On-Board)" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
                     </div>
                     <div class="control-group">
                         <label class="control-label">Map Potentiometer To:</label>
@@ -386,6 +400,7 @@
                     <div class="control-header">
                         <div class="control-icon">🔧</div>
                         <div class="control-title">Servo Motor</div>
+                        <button class="card-info-btn" data-img="images/lecture-images/06-makerbuddy-sg90-servo-motor.png" data-title="SG90 Servo Motor" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
                     </div>
                     <div class="automation-warning hidden" id="servoWarning">
                         <span style="font-size: 20px;">⚠️</span>
@@ -406,6 +421,7 @@
                     <div class="control-header">
                         <div class="control-icon">🔊</div>
                         <div class="control-title">Buzzer</div>
+                        <button class="card-info-btn" data-img="images/lecture-images/05-MakerBuddy-On-Board-Buzzer.png" data-title="Buzzer (On-Board)" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
                     </div>
                     <div class="automation-warning hidden" id="buzzerWarning">
                         <span style="font-size: 20px;">⚠️</span>
@@ -422,6 +438,7 @@
                     <div class="control-header">
                         <div class="control-icon">📺</div>
                         <div class="control-title">LCD Display</div>
+                        <button class="card-info-btn" data-img="images/lecture-images/08-makerbuddy-1602-lcd-i2c-interface.png" data-title="1602 LCD with I2C Interface" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
                     </div>
                     <div class="automation-warning hidden" id="lcdWarning">
                         <span style="font-size: 20px;">⚠️</span>
@@ -2265,14 +2282,31 @@
 
             const stepIndex = sequenceSteps.length;
             sequenceSteps.push({ action: '', value: 0, delay: 1000, lcdMode: 'custom', lcdText1: '', lcdText2: '' });
+            syncStepInputsFromDOM();
             renderSteps();
             updateAddStepButtonState();
         });
 
         function removeStep(index) {
             sequenceSteps.splice(index, 1);
+            syncStepInputsFromDOM();
             renderSteps();
             updateAddStepButtonState();
+        }
+
+        function syncStepInputsFromDOM() {
+            for (let i = 0; i < sequenceSteps.length; i++) {
+                const valEl = document.querySelector(`input[name="step${i}_value"]`);
+                if (valEl) sequenceSteps[i].value = Number(valEl.value) || 0;
+                const delayEl = document.querySelector(`input[name="step${i}_delay"]`);
+                if (delayEl) sequenceSteps[i].delay = Number(delayEl.value) || 1000;
+                const lcdModeEl = document.querySelector(`select[name="step${i}_lcdMode"]`);
+                if (lcdModeEl) sequenceSteps[i].lcdMode = lcdModeEl.value;
+                const t1El = document.querySelector(`input[name="step${i}_lcdText1"]`);
+                if (t1El) sequenceSteps[i].lcdText1 = t1El.value;
+                const t2El = document.querySelector(`input[name="step${i}_lcdText2"]`);
+                if (t2El) sequenceSteps[i].lcdText2 = t2El.value;
+            }
         }
 
         function renderSteps() {
@@ -2344,7 +2378,7 @@
                             </div>
                             <div style="${showValue ? '' : 'display:none'}">
                                 <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block; font-weight: 600;">Value</label>
-                                <input type="number" name="step${index}_value" placeholder="0-255" value="${step.value || ''}" min="0" max="255" style="padding: 12px; border-radius: 10px; border: 2px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 14px; width: 100%;">
+                                <input type="number" name="step${index}_value" placeholder="${step.action === 'servo_move' ? '0-180' : '0-255'}" value="${step.value || ''}" min="0" max="${step.action === 'servo_move' ? 180 : 255}" style="padding: 12px; border-radius: 10px; border: 2px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 14px; width: 100%;">
                             </div>
                             <div style="${isLcd ? 'display:none' : ''}">
                                 <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block; font-weight: 600;">Delay (ms)</label>
@@ -2379,6 +2413,11 @@
                 select.addEventListener('change', (e) => {
                     const idx = parseInt(e.target.dataset.step);
                     sequenceSteps[idx].action = e.target.value;
+                    if (e.target.value === 'led_on' || e.target.value === 'led_pwm') {
+                        sequenceSteps[idx].value = 255;
+                    } else if (e.target.value === 'servo_move') {
+                        sequenceSteps[idx].value = Math.min(sequenceSteps[idx].value || 0, 180);
+                    }
                     renderSteps();
                 });
             });
@@ -2457,6 +2496,22 @@
                 alert('Maximum 10 steps allowed.');
                 updateAddStepButtonState();
                 return;
+            }
+
+            if (sequenceSteps.length === 0) {
+                alert('Please add at least one step before saving.');
+                return;
+            }
+
+            // Validate value field for actions that require it
+            for (let i = 0; i < sequenceSteps.length; i++) {
+                const action = formData.get(`step${i}_action`);
+                const value = formData.get(`step${i}_value`);
+                if ((action === 'led_pwm' || action === 'servo_move') &&
+                    (value === null || value === '')) {
+                    alert(`Step ${i + 1} requires a value (${action === 'servo_move' ? '0–180°' : '0–255 brightness'}).`);
+                    return;
+                }
             }
 
             const loopMode = formData.get('loopMode') || 'none';
@@ -2798,6 +2853,45 @@
             }).join('');
         }
 
+    </script>
+
+    <!-- Card Info Popup -->
+    <div id="cardInfoOverlay" class="card-info-overlay">
+        <div class="card-info-popup">
+            <button class="card-info-popup-close" id="cardInfoClose" title="Close">✕</button>
+            <div class="card-info-popup-title" id="cardInfoTitle"></div>
+            <img class="card-info-popup-img" id="cardInfoImg" src="" alt="">
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            const overlay = document.getElementById('cardInfoOverlay');
+            const titleEl = document.getElementById('cardInfoTitle');
+            const imgEl = document.getElementById('cardInfoImg');
+
+            function openCardInfo(img, title) {
+                titleEl.textContent = title;
+                imgEl.src = img;
+                imgEl.alt = title;
+                overlay.classList.add('active');
+            }
+            function closeCardInfo() {
+                overlay.classList.remove('active');
+                imgEl.src = '';
+            }
+
+            document.getElementById('cardInfoClose').addEventListener('click', closeCardInfo);
+            overlay.addEventListener('click', e => { if (e.target === overlay) closeCardInfo(); });
+            document.addEventListener('keydown', e => { if (e.key === 'Escape') closeCardInfo(); });
+
+            document.querySelectorAll('.card-info-btn').forEach(btn => {
+                btn.addEventListener('click', e => {
+                    e.stopPropagation();
+                    openCardInfo(btn.dataset.img, btn.dataset.title);
+                });
+            });
+        })();
     </script>
 </body>
 
