@@ -1,12 +1,22 @@
-# MakerBuddy V1.8
+# MakerBuddy
 
 **A comprehensive ESP32-based IoT development kit for makers, hobbyists, and learners**
 
-MakerBuddy V1.8 is an all-in-one IoT learning platform that combines multiple sensors, actuators, and a beautiful web dashboard with real-time WebSocket communication for monitoring and control. Featuring a powerful sequence-based automation engine with 4 loop modes. Perfect for electronics enthusiasts, students, and anyone looking to dive into IoT development.
+MakerBuddy is an all-in-one IoT learning platform that combines multiple
+sensors and actuators with a hosted WebApp dashboard. The firmware and WebApp
+use real-time WebSocket communication for monitoring and control.
+The sequence-based automation engine supports four loop modes: None, Forever,
+Timer (interval-only), and Condition.
+
+Current releases (17 August 2026): **firmware 2.1** and **WebApp 1.9**.
+
+This public repository contains the open-source Arduino firmware, WebApp, and
+PCB design files. Other MakerBuddy clients are maintained separately and are
+intentionally not included here.
 
 ## 📋 Repository Contents
 
-- **[Web Dashboard](./Web%20Dashboard/)** - Modern, responsive web interface for real-time sensor monitoring and device control
+- **[WebApp](./WebApp/)** - Hosted/static responsive dashboard for modern browsers
 - **[Arduino Code](./Arduino%20Code/)** - ESP32 firmware with sensor integration and web server
 - **[PCB Design](./PCB%20Design/)** - PCB design files (Fritzing `.fzz`)
 
@@ -28,7 +38,7 @@ MakerBuddy V1.8 is an all-in-one IoT learning platform that combines multiple se
 - **Relay** - For switching high-power devices
 - **Servo Motor** - Position control (0-180°)
 - **Buzzer** - Audio alerts
-- **LCD Display (16x2)** - Real-time information display
+- **LCD Display (16x2)** - Real-time information display with live sensor wildcards
 
 ### 🤖 Smart Features
 - Real-time sensor data via WebSocket (push-based, no polling)
@@ -40,7 +50,8 @@ MakerBuddy V1.8 is an all-in-one IoT learning platform that combines multiple se
 - WiFi connectivity with mDNS support (`devicename.local`)
 - REST API + WebSocket endpoints for all actuators
 - Mobile-responsive interface with dark/light theme
-- Device information display (MAC, uptime, free memory)
+- Device information display (configured name, IP, firmware, MAC, uptime, and free memory)
+- Wildcard-aware LCD validation based on the rendered 16-column output rather than token-name length
 
 ## 🚀 Getting Started
 
@@ -49,8 +60,6 @@ MakerBuddy V1.8 is an all-in-one IoT learning platform that combines multiple se
 - Arduino IDE (v1.8.x or later)
 - Required Arduino Libraries (see Arduino Code folder)
 - Web server (Apache/XAMPP) for hosting the dashboard
-
-> ⚠️ **Chrome** — requires [MakerBuddy Chrome Extension](https://chromewebstore.google.com/detail/makerbuddy-iot-controller/jdhfgbalmimccengljapbgfoaldmleah) for full functionality
 
 ### Quick Setup
 
@@ -62,20 +71,19 @@ MakerBuddy V1.8 is an all-in-one IoT learning platform that combines multiple se
 
 2. **Upload Arduino Code**
    - Open `Arduino Code/MakerBuddy/MakerBuddy.ino` in Arduino IDE
-   - Configure WiFi credentials (or use the built-in captive portal after upload)
    - Upload to your ESP32 board
+   - On first boot, use the built-in `MakerBuddy_XXXX` provisioning access point
 
 3. **Setup Web Dashboard**
-   - Copy the `Web Dashboard` folder to your web server
+   - Copy the `WebApp` folder to your web server
    - Open `index.html` in Firefox, Safari, or Edge
    - Enter your MakerBuddy IoT Kit ESP32's device name or IP address to connect
 
 ## 📖 Documentation
 
 Detailed documentation for each component can be found in their respective folders:
-- [Web Dashboard Documentation](./Web%20Dashboard/README.md)
+- [Web Dashboard Documentation](./WebApp/README.md)
 - [Arduino Code Documentation](./Arduino%20Code/README.md)
-- [PCB Design Documentation](./PCB%20Design/README.md)
 
 ## 🛠️ Hardware/components Requirements
 
@@ -103,7 +111,7 @@ Detailed documentation for each component can be found in their respective folde
 - Push Button
 - 5MM LDR
 - 5MM LED
-- 5MM RGB LED (Common Cathode)
+- 5MM RGB LED (firmware output is inverted for common-anode wiring)
 - 5V Relay Module
 - SG90 Servo Motor
 - Passive Buzzer
@@ -130,7 +138,42 @@ We welcome contributions! Feel free to:
 
 ## 📝 Release Notes
 
-### v1.8 (Current)
+### Current firmware and WebApp releases — 17 August 2026
+
+**Firmware v2.1**
+
+- A finishing condition step retains ownership of its actuator until its configured delay expires.
+- Opposing condition rules retry without consuming their delay, enforcing actuator dwell times.
+
+**Firmware v2.0 features**
+
+- Uses the configured device name consistently across LCD, mDNS, REST, and WebSocket identity responses.
+- Returns an empty device name when none is configured and reports the loaded identity through Serial diagnostics.
+- Shows connected WiFi/IP and device-name screens for five seconds at boot and in the default LCD rotation.
+- Validates custom LCD templates against 16 rendered columns and compacts recognized wildcard tokens inside sequence storage without changing the persisted struct layout.
+
+**WebApp v1.9**
+
+- Display the ESP32-reported device IP address in Settings.
+- Count LCD wildcards by their maximum displayed width and show live 16-column counters in manual controls and rule steps.
+- Allow longer source templates such as `{humidity}{distance}` when their rendered output fits the physical LCD.
+- Preserve the unified device-identity UI, rule-list-first layout, interval-only timer controls, and synchronized rule-step values.
+
+### Earlier v1.9 release
+
+**Firmware v1.9**
+
+- Timer mode simplified to interval-only; all timer rules repeat after their configured interval.
+- Sequence device locking narrowed to the current step so parked sequences release their devices.
+- Sequence type declarations aligned at version 1.9.
+
+**WebApp v1.7**
+
+- Timer UI simplified to an Interval field.
+- Rule step values remain intact when adding or removing steps.
+- LED On defaults to 255, and Servo values are restricted to 0-180.
+
+### v1.8
 
 **Firmware (Arduino Code)**
 - Optimized NVS storage with dirty bitmask tracking — only changed sequence slots are written
@@ -141,9 +184,9 @@ We welcome contributions! Feel free to:
 - Relay delay protocol fields (`od`/`fd`) added to WebSocket for future timed relay support
 - Legacy pot mapping string-to-UChar migration
 
-**Web Dashboard (v1.6)**
+**Web Dashboard (v1.7)**
 - Push button sensor card with live Pressed/Released state display
-- Relay delay protocol ready (`onDelay`/`offDelay` fields in WebSocket)
+- Relay messages include reserved `od`/`fd` fields, but firmware currently switches immediately and ignores them
 - Sidebar state persistence across sessions (localStorage), smart show/hide on mobile
 - Debounced resize handler for desktop/mobile sidebar transitions
 - Backdrop dismiss — tap overlay to close sidebar on mobile
@@ -186,22 +229,16 @@ We welcome contributions! Feel free to:
 
 ## 📄 License
 
-This project uses dual licensing:
+The software in this checkout is GPL-3.0 licensed:
 
-### Software (Firmware & Web Dashboard)
+### Software (Firmware and WebApp)
 - **License:** GNU General Public License v3.0 (GPL-3.0)
-- **Applies to:** Arduino Code, Web Dashboard
+- **Applies to:** Arduino Code and WebApp
 - You are free to use, modify, and distribute the software under the terms of GPL-3.0
 - See [LICENSE-GPL](./LICENSE-GPL) for full license text
 
-### Hardware (PCB Design)
-- **License:** Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)
-- **Applies to:** PCB Design files
-- You are free to share and adapt the hardware design, as long as you:
-  - Give appropriate credit
-  - Indicate if changes were made
-  - Distribute under the same license
-- See [PCB Design/LICENSE-CC-BY-SA](./PCB%20Design/LICENSE-CC-BY-SA) for full license text
+PCB design files are not included in this checkout. Consult the distribution
+that supplies those hardware files for its hardware-design license.
 
 **Copyright (C) 2024 Muhammad Afzal**
 Website: [https://makerbuddy.cc](https://makerbuddy.cc)

@@ -1,25 +1,56 @@
 # MakerBuddy Arduino Code
 
-ESP32 firmware for the MakerBuddy V1.8 IoT kit with WebSocket server, sensor management, and sequence-based automation engine.
+MakerBuddy ESP32 firmware v2.1 with WebSocket server, sensor management, and sequence-based automation engine.
 
 ## 📋 Overview
 
-This Arduino sketch provides a complete IoT solution for the MakerBuddy V1.8 kit, featuring:
+This Arduino sketch provides a complete IoT solution for the MakerBuddy kit, featuring:
 - Multi-sensor data acquisition
 - Real-time WebSocket communication (replaces HTTP polling)
 - Actuator control via REST API and WebSocket
 - Advanced sequence engine with 4 loop modes and multi-step automation
-- WiFi connectivity with AP mode fallback and mDNS
+- WiFi connectivity with AP provisioning, station mode, mDNS, and standalone operation after a saved-network failure
 - OTA (over-the-air) firmware updates
 - LCD wildcard support for live sensor values
 - Persistent configuration storage with Preferences/NVS
 
-## 🆕 What's New in v1.8
+The canonical runtime version is `FIRMWARE_VERSION` in `MakerBuddy.ino`; its
+source header, `MakerBuddyTypes.h`, this README, and `ARCHITECTURE.md` must stay
+aligned for every firmware release.
+
+## 🆕 What's New in v2.1
+
+- **Condition-Step Ownership** — When a condition turns false mid-step, that
+  step retains ownership of its current actuator until its configured delay
+  expires. Competing condition rules retry instead of consuming their delay
+  while blocked.
+- **Minimum Dwell Guarantee** — Opposing rules such as servo `90°` for 10000 ms
+  and servo `0°` for 1000 ms can no longer overwrite the active 10-second step
+  early.
+- **Version** — Firmware bumped to 2.1 on 16 August 2026.
+
+### v2.0 Features (also included)
+
+- **Reliable Device Identity** — The configured WiFi-provisioning name is normalized, loaded once from NVS, and used consistently by LCD, mDNS, REST, and WebSocket identity responses.
+- **No Misleading Name Fallback** — REST and WebSocket now return an empty `dn` when no name is configured instead of reporting `MakerBuddy IoT Kit` as if it were the saved name.
+- **Identity Diagnostics** — Boot output at 115200 baud reports the configured device name for deployment verification.
+- **LCD Network Identity Timing** — Connected SSID/IP and the saved device name are each shown for 5 seconds at boot and remain available in the default LCD rotation.
+- **Wildcard-Aware LCD Width** — Custom LCD lines are validated against their 16 displayed columns. Wildcard templates in sequence steps use compact internal markers, preserving the existing NVS struct while allowing source text such as `{humidity}{distance}`.
+- **Version** — Firmware bumped to 2.0 on 8 August 2026.
+
+### v1.9 Features (also included)
+
+- **Timer Mode: Interval Only** — Duration option removed from `SeqTimerType` enum. `seqTimerTypeFromString()` and `seqTimerTypeToString()` always return "interval". `processSequences()` timer branch simplified — always parks at end for interval wait. REST and WebSocket handlers default to "interval".
+- **Buzzer Conflict Fix** — `markSequenceDevices()` now locks only the currently executing step's device (not all steps). When a sequence is parked at end (`currentStep >= stepCount`), no devices are locked — releasing the buzzer and other actuators for concurrent rules.
+- **Types Header v1.9** — Enum cleanup with `STT_DURATION` removed.
+- **Version** — Firmware bumped to 1.9.
+
+### v1.8 Features (also included)
 
 - **Optimized NVS Storage** — Dirty bitmask tracking writes only changed sequence slots. Compact format saves ~336-432 bytes per rule by storing only the header and used steps. Orphaned NVS entries (`seq_N`, `seqms_N`) are automatically cleaned up on boot.
 - **ADC Noise Reduction** — 4-read averaging per analog pin (LDR, Potentiometer, MQ-2, Soil Moisture) for cleaner sensor readings.
 - **WiFi Power Saving** — Falls back to `WIFI_OFF` on connection failure instead of staying in AP mode, reducing power consumption.
-- **Relay Delay Protocol** — WebSocket relay command now accepts `od` (onDelay) and `fd` (offDelay) fields for future timed relay support.
+- **Relay Delay Protocol Reservation** — Dashboards send `od` and `fd` fields, but firmware currently ignores them and switches the relay immediately.
 - **Sequence Save Performance** — Per-slot dirty bitmask prevents unnecessary NVS writes, avoiding flash wear and reducing save latency.
 
 ### v1.2 Features (also included)
@@ -122,13 +153,11 @@ lib_deps =
 
 ### 2. WiFi Configuration
 
-**Method 1: Direct Code Modification** (Lines 48-50)
-```cpp
-const char* ssid = "YourWiFiSSID";
-const char* password = "YourWiFiPassword";
-```
+**Configuration Portal**
 
-**Method 2: Configuration Portal** (Recommended — applicable after firmware upload)
+The empty `ssid`/`password` constants near the top of the sketch are not used by
+`connectToWiFi()`; provisioning through Preferences is the supported path.
+
 - On first boot, ESP32 creates a hotspot named `MakerBuddy_XXXX` (last 4 hex digits of MAC)
 - Connect to this hotspot (password: `12345678`)
 - Open browser to `192.168.4.1`
@@ -166,6 +195,7 @@ GET /api/device
 Response (compact JSON): {dn, fv, ip, mc, up, fh, sd, sw}
 ```
 - `dn`: Device name, `fv`: Firmware version, `ip`: IP address, `mc`: MAC address
+- `dn` contains the normalized name saved during WiFi provisioning and is empty when no name is configured. The firmware also prints the loaded name to Serial Monitor during boot.
 - `up`: Uptime in seconds, `fh`: Free heap, `sd/sw`: Soil calibration dry/wet
 
 ### Sensor Data
@@ -202,7 +232,7 @@ Parameters: r (0-255), g (0-255), b (0-255)
 **Relay Control**
 ```
 POST /api/relay
-Parameters: state (bool), onDelay (ms), offDelay (ms)
+Parameters: state (bool)
 ```
 
 **Servo Control**
@@ -282,7 +312,7 @@ The WebSocket server at `/ws` uses compact single-letter JSON keys for efficienc
 | `O` | OTA Update | `{m:"O", u:"firmware_url"}` |
 | `X` | Sequences | `{m:"X", a:0-4, i?, s?}` |
 
-## 🤖 Sequence Engine (v1.8)
+## 🤖 Sequence Engine (v2.0)
 
 The sequence engine replaces the old rules engine with a powerful multi-mode automation system.
 
@@ -292,12 +322,11 @@ The sequence engine replaces the old rules engine with a powerful multi-mode aut
 |---|---|---|
 | **None** | Run sequence once and stop | 4th (lowest) |
 | **Forever** | Repeat continuously | 3rd |
-| **Timer** | Run for a duration or at an interval | 2nd |
+| **Timer** | Run a cycle, then repeat after a fixed interval | 2nd |
 | **Condition** | Run while a sensor condition is met (auto start/stop) | 1st (highest) |
 
-### Timer Sub-Modes
-- **Duration**: Loop for a specified time (hours:minutes:seconds), then stop
-- **Interval**: Repeat the sequence at a fixed interval
+### Timer Behavior
+- **Interval only**: Run a complete cycle, park at the end, wait the configured interval, then repeat. The wait starts after the cycle completes.
 
 ### Condition Sub-Modes
 - **Single Condition**: e.g., `temperature > 30`
@@ -307,13 +336,13 @@ The sequence engine replaces the old rules engine with a powerful multi-mode aut
 
 ### Priority System
 Higher-priority sequences lock devices, preventing lower-priority ones from conflicting:
-1. **Condition** — Runs first, locks all its devices
+1. **Condition** — Runs first and locks its current step's device
 2. **Timer** — Only runs on unlocked devices
 3. **Forever** — Only runs on still-unlocked devices
 4. **None** — Runs last
 
 ### Device Locking
-Each sequence step targets a device (LED, RGB, Buzzer, Servo, Relay, LCD). When a higher-priority sequence is running, its devices are locked and cannot be overridden by lower-priority ones.
+Each sequence step targets a device (LED, RGB, Buzzer, Servo, Relay, LCD). A running higher-priority sequence locks only its current step's device against lower-priority tiers. A timer parked at the end of its cycle locks nothing.
 
 ### Autostart
 Sequences marked for autostart begin running on boot (except condition-based ones, which wait for their condition to become true).
@@ -321,6 +350,12 @@ Sequences marked for autostart begin running on boot (except condition-based one
 ### LCD Wildcards
 Custom LCD text supports wildcards replaced with live sensor values:
 `{temp}`, `{humidity}`, `{ds18b20}`, `{light}`, `{gas}`, `{soil}`, `{distance}`, `{pot}`, `{motion}`, `{button}`
+
+The 16-column limit is based on the maximum rendered width, not the wildcard
+name. `{temp}`, `{humidity}`, `{ds18b20}`, and `{distance}` count as 5 columns;
+the other supported wildcards count as 3. Sequence templates compact each
+recognized wildcard to a one-byte internal marker for NVS storage and decode it
+again in REST/WebSocket responses.
 
 ### Example Sequences
 
@@ -366,6 +401,7 @@ Custom LCD text supports wildcards replaced with live sensor values:
 ```
 
 ### Persistence
+- Preferences namespace: `iot-kit`
 - Up to 10 sequences stored in individual NVS keys (`seq_0` through `seq_9`)
 - **Dirty bitmask tracking** — only modified slots are written to NVS, avoiding unnecessary flash wear
 - **Compact format** — stores only the header and used steps instead of the full struct, saving ~336-432 bytes per rule
@@ -407,14 +443,16 @@ Update firmware over-the-air without USB connection:
 4. LCD shows progress in 10% increments
 5. Device restarts automatically on success
 
-**⚠️ Warning:** All NVS preferences are cleared before the update to ensure a clean state.
+**⚠️ Warning:** The complete `iot-kit` Preferences namespace is cleared before
+the firmware download is attempted. WiFi credentials, device name, sequences,
+LCD state, pot mapping, and soil calibration are lost even if OTA later fails.
 
 ## 🔍 Pin Configuration Details
 
 ### PWM/LEDC Channels
 - LED uses `analogWrite()` (internal LEDC channel)
 - RGB LED uses 3 separate `analogWrite()` channels
-- Servo uses dedicated LEDC at 50Hz / 16-bit resolution (channels 0-7 reserved for analogWrite)
+- Servo uses the pin-based LEDC API at 50Hz / 16-bit resolution with a 500-2500 µs pulse mapping
 
 ### I2C Configuration
 - SDA: GPIO 21 (default)
@@ -439,18 +477,18 @@ Configuration stored in ESP32 NVS (Non-Volatile Storage) under namespace `iot-ki
 | `wifi_password` | String | Saved WiFi password |
 | `deviceName` | String | mDNS hostname |
 | `seqCount` | Int | Number of active sequences |
-| `seq_0` … `seq_9` | Bytes | Individual sequence data (sizeof Sequence) |
+| `seq_0` … `seq_9` | Bytes | Compact per-sequence header + used steps + step count |
+| `seqms_0` … `seqms_9` | Bool | Separately persisted manually-stopped state |
 | `lcdDefault` | Bool | LCD display mode |
 | `customText1/2` | String | Custom LCD text |
 | `potMappingId` | UChar | Potentiometer mapping mode |
 | `soilDry/soilWet` | Int | Soil moisture calibration |
 
-## 📊 Memory Usage
+## 📊 Memory Visibility
 
-Typical flash/RAM usage:
-- Sketch size: ~1.2MB of available flash
-- Global variables: ~65KB of ~320KB (20%)
-- Heap available: ~250KB for dynamic allocation
+Build size depends on the installed ESP32 core and library versions. Runtime free
+heap is exposed as `fh` by REST and WebSocket telemetry and logged where useful;
+do not rely on fixed RAM/flash estimates in documentation.
 
 ## ⚡ Performance
 
@@ -458,11 +496,10 @@ Typical flash/RAM usage:
 |---|---|
 | Sensor update rate | ~1 second |
 | WebSocket push interval | 2 seconds |
-| Web server response time | <100ms |
 | Maximum sequences | 10 |
 | Maximum steps per sequence | 10 |
 | Condition debounce | 300ms |
-| PWM frequency | 1000Hz (LED/RGB), 50Hz (Servo) |
+| Servo PWM | 50Hz, 16-bit LEDC |
 
 ## 🐛 Troubleshooting
 
@@ -540,7 +577,26 @@ Connect with MakerBuddy:
 
 ## 📝 Version History
 
-### v1.8 (Current)
+### v2.1 (Current)
+- Condition steps retain current-actuator ownership while finishing their dwell
+- Blocked condition rules retry without starting or consuming their step delay
+- Opposing actuator rules therefore respect the active step's minimum duration
+
+### v2.0
+- Configured device name used consistently by LCD, mDNS, REST, and WebSocket
+- Device names normalized to 32-character mDNS-safe values
+- Empty identity returned when no device name is configured
+- Five-second WiFi/IP and device-name LCD screens
+- Boot-time Serial diagnostic for the loaded device name
+- Wildcard-aware 16-column LCD validation without changing persisted struct sizes
+
+### v1.9
+- Timer mode: Duration removed, Interval only. Simplified processSequences() timer branch.
+- Buzzer conflict fix: markSequenceDevices() locks only current step, releases parked devices.
+- Types header v1.9 (STT_DURATION removed from SeqTimerType enum).
+- REST/WS defaults changed to "interval".
+
+### v1.8
 - Optimized NVS storage with dirty bitmask tracking — only changed slots written
 - Compact sequence save format (header + used steps, saves ~336-432 bytes per rule)
 - Orphaned NVS entry cleanup (stale `seq_N`/`seqms_N` keys removed on boot)

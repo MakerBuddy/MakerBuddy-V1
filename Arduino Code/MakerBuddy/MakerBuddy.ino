@@ -3,8 +3,8 @@
  *
  * Website: https://makerbuddy.cc
  * Email: info@makerbuddy.cc
- * Version: 1.8
- * Release Date: 19 May 2026
+ * Version: 2.1
+ * Release Date: 16 August 2026
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,7 +43,7 @@
 #include "esp_wifi.h"
 
 // Firmware Version
-#define FIRMWARE_VERSION "1.8"
+#define FIRMWARE_VERSION "2.1"
 
 // WiFi credentials - will be overridden by saved preferences
 const char *ssid = "";
@@ -53,6 +53,38 @@ const char *password = "";
 String hotspotSSID = "";
 const char *ap_password = "12345678";
 String deviceName = "";
+
+const unsigned long LCD_SENSOR_SCREEN_MS = 3000;
+const unsigned long LCD_NETWORK_SCREEN_MS = 5000;
+const size_t MAX_DEVICE_NAME_LENGTH = 32;
+
+String normalizeDeviceName(String value) {
+  value.trim();
+  value.toLowerCase();
+
+  String normalized = "";
+  normalized.reserve(MAX_DEVICE_NAME_LENGTH);
+  bool lastWasSeparator = false;
+
+  for (size_t i = 0;
+       i < value.length() && normalized.length() < MAX_DEVICE_NAME_LENGTH; i++) {
+    const char c = value.charAt(i);
+    const bool alphaNumeric = (c >= 'a' && c <= 'z') ||
+                              (c >= '0' && c <= '9');
+    if (alphaNumeric) {
+      normalized += c;
+      lastWasSeparator = false;
+    } else if (normalized.length() > 0 && !lastWasSeparator) {
+      normalized += '-';
+      lastWasSeparator = true;
+    }
+  }
+
+  while (normalized.endsWith("-")) {
+    normalized.remove(normalized.length() - 1);
+  }
+  return normalized;
+}
 
 // OTA Update variables
 bool otaInProgress = false;
@@ -271,18 +303,11 @@ const char *seqLoopModeToString(SeqLoopMode m) {
 }
 
 SeqTimerType seqTimerTypeFromString(const String &s) {
-  if (s == "interval")
-    return STT_INTERVAL;
-  return STT_DURATION;
+  return STT_INTERVAL;
 }
 
 const char *seqTimerTypeToString(SeqTimerType t) {
-  switch (t) {
-  case STT_INTERVAL:
-    return "interval";
-  default:
-    return "duration";
-  }
+  return "interval";
 }
 
 SeqSensor seqSensorFromString(const String &s) {
@@ -434,7 +459,9 @@ void saveAllSequences();
 void clearSequenceNVS(int index);
 void processSequences();
 void executeSequenceStep(SequenceStep step);
-void executeSequenceStepWithPriority(SequenceStep step, bool deviceLocked[]);
+bool executeSequenceStepWithPriority(SequenceStep step, bool deviceLocked[],
+                                     int sequenceIndex = -1,
+                                     const int8_t conditionOwners[] = nullptr);
 int getDeviceFromAction(SeqAction action);
 void markSequenceDevices(Sequence &seq, bool deviceLocked[]);
 bool evaluateOperator(float value, SeqOp op, float threshold);
@@ -582,6 +609,17 @@ void setup() {
   }
   Serial.println("Hotspot SSID: " + hotspotSSID);
 
+  // Keep one saved device name in memory for LCD, mDNS, REST, and
+  // WebSocket identity responses. Loading it before WiFi connects also avoids
+  // the boot LCD using a temporary value that later disagrees with mDNS.
+  const String savedDeviceName = preferences.getString("deviceName", "");
+  deviceName = normalizeDeviceName(savedDeviceName);
+  if (deviceName != savedDeviceName) {
+    preferences.putString("deviceName", deviceName);
+  }
+  Serial.print("Configured device name: ");
+  Serial.println(deviceName.length() > 0 ? deviceName : "<not configured>");
+
   loadSequences();
 
   // Autostart sequences marked for boot
@@ -653,8 +691,7 @@ void setup() {
   connectToWiFi();
 
   if (WiFi.status() == WL_CONNECTED) {
-    // Load device name and setup mDNS
-    deviceName = preferences.getString("deviceName", "");
+    // Setup mDNS using the same saved name exposed everywhere else.
     if (deviceName.length() > 0) {
       if (MDNS.begin(deviceName.c_str())) {
         Serial.println("mDNS responder started");
@@ -760,8 +797,68 @@ void buzzerTimerCallback() { buzzerOffFlag = true; }
 // RULE ENGINE WITH RGB SUPPORT AND LCD (Functions removed)
 // ============================================================================
 
+const char *LCD_WILDCARD_TOKENS[] = {
+    "{temp}",  "{humidity}", "{ds18b20}", "{light}",  "{gas}",
+    "{soil}",  "{distance}", "{pot}",     "{motion}", "{button}"};
+const uint8_t LCD_WILDCARD_WIDTHS[] = {5, 5, 5, 3, 3, 3, 5, 3, 3, 3};
+const size_t LCD_WILDCARD_COUNT =
+    sizeof(LCD_WILDCARD_TOKENS) / sizeof(LCD_WILDCARD_TOKENS[0]);
+const size_t LCD_MAX_COLUMNS = 16;
+const size_t LCD_MAX_TEMPLATE_BYTES = 64;
+
+String encodeLcdTemplate(String text) {
+  // A rule step has a stable 17-byte persisted field. Store each recognized
+  // wildcard as one non-NUL marker so useful templates can exceed 16 source
+  // characters without changing the binary NVS struct layout.
+  for (size_t i = 0; i < LCD_WILDCARD_COUNT; i++) {
+    String marker;
+    marker += (char)(i + 1);
+    text.replace(LCD_WILDCARD_TOKENS[i], marker);
+  }
+  return text;
+}
+
+String decodeLcdTemplate(String text) {
+  for (size_t i = 0; i < LCD_WILDCARD_COUNT; i++) {
+    String marker;
+    marker += (char)(i + 1);
+    text.replace(marker, LCD_WILDCARD_TOKENS[i]);
+  }
+  return text;
+}
+
+size_t lcdTemplateDisplayWidth(String text) {
+  text = decodeLcdTemplate(text);
+  for (size_t i = 0; i < LCD_WILDCARD_COUNT; i++) {
+    String placeholder;
+    for (uint8_t column = 0; column < LCD_WILDCARD_WIDTHS[i]; column++)
+      placeholder += '0';
+    text.replace(LCD_WILDCARD_TOKENS[i], placeholder);
+  }
+  return text.length();
+}
+
+bool isValidLcdTemplate(const String &text) {
+  return text.length() <= LCD_MAX_TEMPLATE_BYTES &&
+         lcdTemplateDisplayWidth(text) <= LCD_MAX_COLUMNS;
+}
+
+bool storeSequenceLcdTemplate(char *destination, size_t destinationSize,
+                              const String &text) {
+  if (!isValidLcdTemplate(text))
+    return false;
+
+  String encoded = encodeLcdTemplate(text);
+  if (encoded.length() >= destinationSize)
+    return false;
+
+  memcpy(destination, encoded.c_str(), encoded.length() + 1);
+  return true;
+}
+
 String replaceWildcards(String text) {
-  // Replace sensor value wildcards with actual values
+  // Decode compact rule templates, then replace sensor wildcards with values.
+  text = decodeLcdTemplate(text);
   text.replace("{temp}", String(sensorData.temperature, 1));
   text.replace("{humidity}", String(sensorData.humidity, 1));
   text.replace("{ds18b20}", String(sensorData.ds18b20Temp, 1));
@@ -1090,8 +1187,10 @@ void setupWebServer() {
         if (sequences[i].steps[j].action == SA_LCD_DISPLAY) {
           stepObj["lcdMode"] =
               seqLcdModeToString((SeqLcdMode)sequences[i].steps[j].lcdMode);
-          stepObj["lcdText1"] = sequences[i].steps[j].lcdText1;
-          stepObj["lcdText2"] = sequences[i].steps[j].lcdText2;
+          stepObj["lcdText1"] =
+              decodeLcdTemplate(String(sequences[i].steps[j].lcdText1));
+          stepObj["lcdText2"] =
+              decodeLcdTemplate(String(sequences[i].steps[j].lcdText2));
         }
       }
     }
@@ -1131,7 +1230,7 @@ void setupWebServer() {
         newSeq.timerType = (uint8_t)seqTimerTypeFromString(
             request->hasParam("timerType", true)
                 ? request->getParam("timerType", true)->value()
-                : "duration");
+                : "interval");
         newSeq.loopDuration =
             request->hasParam("loopDuration", true)
                 ? request->getParam("loopDuration", true)->value().toInt()
@@ -1183,6 +1282,7 @@ void setupWebServer() {
           requestedStepCount = 10;
         newSeq.stepCount = requestedStepCount;
 
+        bool lcdTemplatesValid = true;
         for (int i = 0; i < newSeq.stepCount; i++) {
           String actionParam = "step" + String(i) + "_action";
           String valueParam = "step" + String(i) + "_value";
@@ -1222,11 +1322,26 @@ void setupWebServer() {
                     ? request->getParam(lcdText2Param.c_str(), true)->value()
                     : "";
 
-            strncpy(newSeq.steps[i].lcdText1, t1.c_str(), 16);
-            strncpy(newSeq.steps[i].lcdText2, t2.c_str(), 16);
-            newSeq.steps[i].lcdText1[16] = 0;
-            newSeq.steps[i].lcdText2[16] = 0;
+            if (newSeq.steps[i].action == SA_LCD_DISPLAY &&
+                newSeq.steps[i].lcdMode == SLM_LCD_CUSTOM) {
+              if (!storeSequenceLcdTemplate(newSeq.steps[i].lcdText1,
+                                            sizeof(newSeq.steps[i].lcdText1),
+                                            t1) ||
+                  !storeSequenceLcdTemplate(newSeq.steps[i].lcdText2,
+                                            sizeof(newSeq.steps[i].lcdText2),
+                                            t2)) {
+                lcdTemplatesValid = false;
+                break;
+              }
+            }
           }
+        }
+
+        if (!lcdTemplatesValid) {
+          request->send(
+              400, "application/json",
+              "{\"error\":\"LCD lines must fit 16 display columns\"}");
+          return;
         }
 
         sequences[sequenceCount] = newSeq;
@@ -1369,7 +1484,7 @@ void setupWebServer() {
     AsyncResponseStream *response =
         request->beginResponseStream("application/json");
     StaticJsonDocument<320> doc;
-    doc["dn"] = "MakerBuddy IoT Kit";
+    doc["dn"] = deviceName;
     doc["fv"] = FIRMWARE_VERSION;
     doc["ip"] = WiFi.localIP().toString();
     doc["mc"] = WiFi.macAddress();
@@ -1508,8 +1623,10 @@ String getSequencesJSONCompact() {
       if (sequences[i].steps[j].action == SA_LCD_DISPLAY) {
         st["lm"] =
             seqLcdModeToString((SeqLcdMode)sequences[i].steps[j].lcdMode);
-        st["t1"] = sequences[i].steps[j].lcdText1;
-        st["t2"] = sequences[i].steps[j].lcdText2;
+        st["t1"] =
+            decodeLcdTemplate(String(sequences[i].steps[j].lcdText1));
+        st["t2"] =
+            decodeLcdTemplate(String(sequences[i].steps[j].lcdText2));
       }
     }
   }
@@ -1524,7 +1641,7 @@ void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client,
   if (type == WS_EVT_CONNECT) {
     StaticJsonDocument<320> info;
     info["m"] = "i";
-    info["dn"] = "MakerBuddy IoT Kit";
+    info["dn"] = deviceName;
     info["fv"] = FIRMWARE_VERSION;
     info["ip"] = WiFi.localIP().toString();
     info["mc"] = WiFi.macAddress();
@@ -1631,8 +1748,14 @@ void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client,
     } else {
       const char *t1 = doc["t1"] | "";
       const char *t2 = doc["t2"] | "";
-      customLcdText1 = String(t1);
-      customLcdText2 = String(t2);
+      String line1 = String(t1);
+      String line2 = String(t2);
+      if (!isValidLcdTemplate(line1) || !isValidLcdTemplate(line2)) {
+        Serial.println("[LCD] Rejected custom text wider than 16 columns");
+        break;
+      }
+      customLcdText1 = line1;
+      customLcdText2 = line2;
       lcdDefaultMode = false;
       preferences.putBool("lcdDefault", false);
       preferences.putString("customText1", customLcdText1);
@@ -1705,7 +1828,7 @@ void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client,
         newSeq.autostart = (s["as"] | 0) == 1;
 
         newSeq.timerType = (uint8_t)seqTimerTypeFromString(
-            String((const char *)(s["tt"] | "duration")));
+            String((const char *)(s["tt"] | "interval")));
         newSeq.loopDuration = s["ld"] | 0;
         newSeq.loopStartTime = 0;
         newSeq.lastIntervalTime = 0;
@@ -1729,6 +1852,7 @@ void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client,
 
         JsonArray steps = s["st"];
         int sc = 0;
+        bool lcdTemplatesValid = true;
         if (!steps.isNull()) {
           for (JsonObject st : steps) {
             if (sc >= 10)
@@ -1745,13 +1869,26 @@ void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client,
 
             String t1 = String((const char *)(st["t1"] | ""));
             String t2 = String((const char *)(st["t2"] | ""));
-            strncpy(newSeq.steps[sc].lcdText1, t1.c_str(), 16);
-            strncpy(newSeq.steps[sc].lcdText2, t2.c_str(), 16);
-            newSeq.steps[sc].lcdText1[16] = 0;
-            newSeq.steps[sc].lcdText2[16] = 0;
+            if (newSeq.steps[sc].action == SA_LCD_DISPLAY &&
+                newSeq.steps[sc].lcdMode == SLM_LCD_CUSTOM) {
+              if (!storeSequenceLcdTemplate(newSeq.steps[sc].lcdText1,
+                                            sizeof(newSeq.steps[sc].lcdText1),
+                                            t1) ||
+                  !storeSequenceLcdTemplate(newSeq.steps[sc].lcdText2,
+                                            sizeof(newSeq.steps[sc].lcdText2),
+                                            t2)) {
+                lcdTemplatesValid = false;
+                break;
+              }
+            }
 
             sc++;
           }
+        }
+        if (!lcdTemplatesValid) {
+          Serial.println(
+              "[SEQUENCE] Rejected LCD text wider than 16 display columns");
+          break;
         }
         newSeq.stepCount = sc;
 
@@ -1955,17 +2092,16 @@ void connectToWiFi() {
         lcd.print(WiFi.SSID());
         lcd.setCursor(0, 1);
         lcd.print(WiFi.localIP());
-        delay(3000);
+        delay(LCD_NETWORK_SCREEN_MS);
 
         // Second screen: Show Device Name
-        String devName = preferences.getString("deviceName", "");
-        if (devName.length() > 0) {
+        if (deviceName.length() > 0) {
           lcd.clear();
           lcd.setCursor(0, 0);
           lcd.print("Device Name:");
           lcd.setCursor(0, 1);
-          lcd.print(devName);
-          delay(3000);
+          lcd.print(deviceName.substring(0, 16));
+          delay(LCD_NETWORK_SCREEN_MS);
         }
 
         return;
@@ -2081,7 +2217,8 @@ void setupConfigServer() {
     html += "<form action='/save' method='POST'>";
     html += "<label>Device Name:</label>";
     html += "<input type='text' name='deviceName' value='" + savedDeviceName +
-            "' placeholder='Enter device name (e.g., makerbuddy-01)' required>";
+            "' maxlength='32' placeholder='Enter device name (e.g., "
+            "makerbuddy-01)' required>";
     html += "<div class='radio-group'>";
     html += "<label><input type='radio' name='wifiMode' value='dropdown' "
             "checked onclick='toggleWifiInput()'> Select WiFi Network</label>";
@@ -2152,10 +2289,14 @@ void setupConfigServer() {
 
     // Get device name
     if (request->hasParam("deviceName", true)) {
-      devName = request->getParam("deviceName", true)->value();
-      // Clean device name (remove spaces, special chars)
-      devName.replace(" ", "-");
-      devName.toLowerCase();
+      devName = normalizeDeviceName(
+          request->getParam("deviceName", true)->value());
+    }
+
+    if (devName.length() == 0) {
+      request->send(400, "application/json",
+                    "{\"error\":\"Invalid device name\"}");
+      return;
     }
 
     // Get SSID from dropdown or manual input
@@ -2173,6 +2314,7 @@ void setupConfigServer() {
     preferences.putString("wifi_ssid", ssid);
     preferences.putString("wifi_password", password);
     preferences.putString("deviceName", devName);
+    deviceName = devName;
 
     String html = "<!DOCTYPE html><html><head><title>Saved</title>";
     html +=
@@ -2345,6 +2487,7 @@ void processPotentiometerMapping() {
 void updateLCD() {
   static unsigned long lastUpdate = 0;
   static int displayMode = 0;
+  static unsigned long displayInterval = 0;
 
   static bool preferencesLoaded = false;
   if (!preferencesLoaded) {
@@ -2379,7 +2522,10 @@ void updateLCD() {
       lastUpdate = millis();
     }
   } else {
-    if (millis() - lastUpdate > 3000) {
+    // Sensor screens use three seconds; network identity screens use five.
+    // A zero initial interval lets the normal rotation begin immediately after
+    // connectToWiFi() has already held its final boot screen for five seconds.
+    if (millis() - lastUpdate > displayInterval) {
       lcd.clear();
       switch (displayMode) {
       case 0:
@@ -2433,8 +2579,20 @@ void updateLCD() {
           }
         }
         break;
+      case 4:
+        lcd.setCursor(0, 0);
+        lcd.print("Device Name:");
+        lcd.setCursor(0, 1);
+        if (deviceName.length() > 0) {
+          lcd.print(deviceName.substring(0, 16));
+        } else {
+          lcd.print("Not configured");
+        }
+        break;
       }
-      displayMode = (displayMode + 1) % 4;
+      displayInterval = displayMode >= 3 ? LCD_NETWORK_SCREEN_MS
+                                         : LCD_SENSOR_SCREEN_MS;
+      displayMode = (displayMode + 1) % 5;
       lastUpdate = millis();
     }
   }
@@ -2699,12 +2857,47 @@ bool getDebouncedCondition(Sequence &seq, bool rawCondition) {
 
 void processSequences() {
   bool deviceLocked[6] = {false, false, false, false, false, false};
+  int8_t conditionOwners[6] = {-1, -1, -1, -1, -1, -1};
+  bool conditionMetCache[MAX_SEQUENCES] = {false};
 
   const SeqLoopMode priorityModes[] = {SLM_CONDITION, SLM_TIMER, SLM_FOREVER,
                                        SLM_NONE};
 
   for (int p = 0; p < 4; p++) {
     SeqLoopMode mode = priorityModes[p];
+
+    if (mode == SLM_CONDITION) {
+      // Resolve every condition transition before starting any competing rule.
+      // A rule whose condition became false owns its current actuator until the
+      // active step's dwell time expires. This guarantees minimum hold times
+      // such as "servo 90 degrees for 10000 ms" even if an opposite condition
+      // becomes true while that step is still active.
+      for (int i = 0; i < sequenceCount; i++) {
+        Sequence &seq = sequences[i];
+        if (!seq.enabled || (SeqLoopMode)seq.loopMode != SLM_CONDITION ||
+            seq.manuallyStopped)
+          continue;
+
+        conditionMetCache[i] =
+            getDebouncedCondition(seq, evaluateLoopCondition(seq));
+        if (!conditionMetCache[i] && seq.isRunning && !seqFinishing[i])
+          seqFinishing[i] = true;
+      }
+
+      for (int i = 0; i < sequenceCount; i++) {
+        Sequence &seq = sequences[i];
+        if (!seq.enabled || !seq.isRunning || !seqFinishing[i] ||
+            (SeqLoopMode)seq.loopMode != SLM_CONDITION)
+          continue;
+
+        int cur = seq.currentStep;
+        if (cur < 0 || cur >= seq.stepCount)
+          continue;
+        int dev = getDeviceFromAction((SeqAction)seq.steps[cur].action);
+        if (dev >= 0 && dev < 6 && conditionOwners[dev] < 0)
+          conditionOwners[dev] = i;
+      }
+    }
 
     // Process all sequences of this priority level
     for (int i = 0; i < sequenceCount; i++) {
@@ -2727,9 +2920,7 @@ void processSequences() {
           continue;
         }
 
-        // Evaluate condition using unified rule engine
-        bool conditionRaw = evaluateLoopCondition(seq);
-        bool conditionMet = getDebouncedCondition(seq, conditionRaw);
+        bool conditionMet = conditionMetCache[i];
 
         if (conditionMet && !seq.isRunning) {
           // Auto-start: condition just became true
@@ -2737,13 +2928,15 @@ void processSequences() {
             continue;
           }
           seqFinishing[i] = false;
-          seq.isRunning = true;
           seq.currentStep = 0;
-          seq.lastStepTime = millis();
-          if (seq.stepCount > 0) {
-            executeSequenceStepWithPriority(seq.steps[0], deviceLocked);
+          if (executeSequenceStepWithPriority(seq.steps[0], deviceLocked, i,
+                                              conditionOwners)) {
+            seq.isRunning = true;
+            seq.lastStepTime = millis();
           }
-          continue; // Will process steps on next cycle
+          // If another condition owns this actuator, remain stopped and retry
+          // on the next loop. Do not consume this step's delay while blocked.
+          continue;
         } else if (!conditionMet && seq.isRunning && !seqFinishing[i]) {
           // Condition became false — don't stop immediately; let the current
           // cycle finish so the last step (e.g. buzzer OFF) still executes
@@ -2768,7 +2961,7 @@ void processSequences() {
       // --- INTERVAL WAIT CHECK ---
       // If this is an interval sequence paused at the end waiting for next
       // cycle
-      if (mode == SLM_TIMER && (SeqTimerType)seq.timerType == STT_INTERVAL &&
+      if (mode == SLM_TIMER &&
           seq.currentStep >= seq.stepCount) {
         unsigned long now = millis();
         unsigned long elapsed = now - seq.lastIntervalTime;
@@ -2780,7 +2973,8 @@ void processSequences() {
           seq.currentStep = 0;
           seq.lastStepTime = now;
           if (seq.stepCount > 0) {
-            executeSequenceStepWithPriority(seq.steps[0], deviceLocked);
+            executeSequenceStepWithPriority(seq.steps[0], deviceLocked, i,
+                                            conditionOwners);
           }
         }
         continue; // Either restarted or still waiting
@@ -2812,25 +3006,19 @@ void processSequences() {
           } else if (mode == SLM_FOREVER) {
             shouldLoop = true;
           } else if (mode == SLM_TIMER) {
-            if ((SeqTimerType)seq.timerType == STT_DURATION) {
-              shouldLoop = (currentTime - seq.loopStartTime < seq.loopDuration);
-            } else if ((SeqTimerType)seq.timerType == STT_INTERVAL) {
-              // Interval: park at end and wait for the interval to elapse
-              Serial.printf(
-                  "[SEQ %d] All steps done. Parking for interval (%lums)\n", i,
-                  seq.loopDuration);
-              seq.lastIntervalTime = currentTime;
-              seq.currentStep = seq.stepCount; // Stay parked at end
-              continue;
-            } else {
-              shouldLoop = seq.loop;
-            }
+            // Interval: park at end and wait for the interval to elapse
+            Serial.printf("[SEQ %d] All steps done. Parking for interval (%lums)\n", i,
+                          seq.loopDuration);
+            seq.lastIntervalTime = currentTime;
+            seq.currentStep = seq.stepCount; // Stay parked at end
+            continue;
           }
 
           if (shouldLoop) {
             seq.currentStep = 0;
             Serial.printf("[SEQ %d] Looping. Executing step 0\n", i);
-            executeSequenceStepWithPriority(seq.steps[0], deviceLocked);
+            executeSequenceStepWithPriority(seq.steps[0], deviceLocked, i,
+                                            conditionOwners);
             seq.lastStepTime = currentTime;
           } else {
             seq.isRunning = false;
@@ -2840,7 +3028,7 @@ void processSequences() {
           // Execute the next step
           Serial.printf("[SEQ %d] Executing step %d\n", i, seq.currentStep);
           executeSequenceStepWithPriority(seq.steps[seq.currentStep],
-                                          deviceLocked);
+                                          deviceLocked, i, conditionOwners);
           seq.lastStepTime = currentTime;
         }
       }
@@ -3006,23 +3194,25 @@ int getDeviceFromAction(SeqAction action) {
 void markSequenceDevices(Sequence &seq, bool deviceLocked[]) {
   if (!seq.isRunning)
     return;
-  int safeStepCount = seq.stepCount;
-  if (safeStepCount < 0)
-    safeStepCount = 0;
-  if (safeStepCount > 10)
-    safeStepCount = 10;
-  for (int s = 0; s < safeStepCount; s++) {
-    int dev = getDeviceFromAction((SeqAction)seq.steps[s].action);
-    if (dev >= 0 && dev < 6)
-      deviceLocked[dev] = true;
-  }
+  int cur = seq.currentStep;
+  if (cur < 0 || cur >= seq.stepCount)
+    return; // parked at end or invalid step — no active device
+  int dev = getDeviceFromAction((SeqAction)seq.steps[cur].action);
+  if (dev >= 0 && dev < 6)
+    deviceLocked[dev] = true;
 }
 
-void executeSequenceStepWithPriority(SequenceStep step, bool deviceLocked[]) {
+bool executeSequenceStepWithPriority(SequenceStep step, bool deviceLocked[],
+                                     int sequenceIndex,
+                                     const int8_t conditionOwners[]) {
   int dev = getDeviceFromAction((SeqAction)step.action);
   if (dev >= 0 && dev < 6 && deviceLocked[dev])
-    return; // Higher priority owns this device
+    return false; // Higher priority owns this device
+  if (dev >= 0 && dev < 6 && conditionOwners != nullptr &&
+      conditionOwners[dev] >= 0 && conditionOwners[dev] != sequenceIndex)
+    return false; // A finishing condition step owns its dwell time
   executeSequenceStep(step);
+  return true;
 }
 
 float getSensorValueById(SeqSensor sensor) {

@@ -1,9 +1,36 @@
 # MakerBuddy Web Dashboard
 
-A modern, responsive web interface for real-time monitoring and control of the MakerBuddy V1.2 IoT kit via WebSocket.
+A modern, responsive WebSocket dashboard for MakerBuddy. Current WebApp version: **1.9**.
 
-## 🆕 What's New in v1.2
+## 🆕 What's New in v1.9
 
+- **Device IP Address** — The Settings device-information card now displays the MakerBuddy IoT Kit IP address reported by the ESP32 identity message.
+- **Wildcard-Aware LCD Length** — LCD fields count each wildcard by its maximum rendered width, show a live 16-column counter, and allow useful templates whose source token names exceed 16 characters.
+- **Version** — WebApp bumped to 1.9 on 8 August 2026.
+
+### v1.8 Features (also included)
+
+- **Unified Top Bar** — Chrome-extension-style social links, status, theme, device identity, and disconnect controls replace the legacy sidebar.
+- **Connected Device Name** — The configured name from the ESP32 identity response remains visible even when connecting by IP address.
+- **Legacy Firmware Warning** — The old hard-coded `MakerBuddy IoT Kit` identity is identified as legacy firmware instead of being presented as the configured name.
+- **Device Information in Settings** — Firmware, MAC, uptime, and memory details moved into a responsive Settings card.
+- **Rule List First** — Existing rules appear before the create/edit form in both dashboard clients.
+- **Version** — WebApp bumped to 1.8 on 8 August 2026.
+
+### v1.7 Features (also included)
+
+- **Timer UI Simplified** — "Interval" label replaces "⏱️ Timer Mode" + radio buttons. Duration option removed; all timer rules use interval repeat.
+- **Step Values Fix** — Editing a step's Value or Delay no longer resets when adding/removing steps. DOM inputs now sync to memory before re-rendering.
+- **LED On Default Value** — Selecting LED On action auto-sets the value to 255 (max brightness).
+- **Servo Value Limits** — Servo value input restricted to 0-180 with proper min/max attributes.
+- **Chrome Extension Parity** — Same fixes and UI improvements applied to the Chrome Extension dashboard.
+
+### v1.6 Features (also included)
+
+- **Push Button Sensor Card** — Live Pressed/Released state display for the onboard push button (also used for WiFi reset).
+- **Relay Delay Protocol Reservation** — WebSocket relay messages include compact `od`/`fd` fields, but current firmware ignores them and switches immediately.
+
+### v1.2 Features (also included)
 - **WebSocket Communication** — Real-time bidirectional data replaces HTTP polling. Instant sensor updates and actuator control.
 - **Rule Engine Tab** — Complete redesign with create/edit/manage workflow, 4 loop modes, up to 10 steps per rule, timer and condition settings.
 - **Settings Tab** — Customize sensor/actuator card visibility, background colors, and accent colors. All persisted to localStorage.
@@ -41,7 +68,7 @@ A modern, responsive web interface for real-time monitoring and control of the M
 - **4 Loop Modes**:
   - ⏹️ None — Run once and stop
   - ♾️ Forever — Repeat continuously
-  - ⏱️ Timer — Run for a duration or at an interval (hours:minutes:seconds)
+  - ⏱️ Timer — Repeat a completed sequence after a fixed interval (hours:minutes:seconds)
   - 🎯 Condition — Auto-start/stop based on sensor thresholds
 - **Multi-Step Rules** — Up to 10 steps per rule with individual actions, values, and delays
 - **Condition Options** — Single threshold or range (AND/OR) with 10 sensor types
@@ -53,8 +80,8 @@ A modern, responsive web interface for real-time monitoring and control of the M
 ### 🎯 User Interface
 - **Three Tabs**: Dashboard, Rule Engine, Settings — with animated switching
 - **Dark/Light Theme**: Toggle with localStorage persistence
-- **Collapsible Sidebar**: Connection panel, device info, theme toggle, social links
-- **Device Info Panel**: Name, firmware version, MAC, uptime, free/total memory
+- **Top Connection Bar**: Social links, connection status, configured device name, theme, and disconnect controls
+- **Device Info Panel**: Name, IP address, firmware version, MAC, uptime, and memory details in the Settings tab
 - **Connection Status**: Real-time indicator with pulse animation, last update time
 - **Responsive Design**: Desktop, tablet, and mobile layouts with breakpoints
 
@@ -66,7 +93,7 @@ A modern, responsive web interface for real-time monitoring and control of the M
 ## 📁 Project Structure
 
 ```
-Web Dashboard/
+WebApp/
 ├── index.html          # Main dashboard (single-page app with inline JS)
 ├── style.css           # Styling with CSS custom properties and dark/light themes
 ├── images/
@@ -74,12 +101,15 @@ Web Dashboard/
 └── README.md           # This file
 ```
 
+The release version is maintained in the `application-version` metadata and
+source header in `index.html`, the header in `style.css`, and this README.
+
 ## 🚀 Setup Instructions
 
 ### Prerequisites
 - Web server (Apache, XAMPP, or any HTTP server)
 - Modern web browser (Firefox, Safari, Edge recommended)
-- ESP32 device running MakerBuddy v1.2 firmware
+- ESP32 device running MakerBuddy firmware
 - Both devices on the same network
 
 ### Installation
@@ -87,10 +117,10 @@ Web Dashboard/
 1. **Copy Files to Web Server**
    ```bash
    # For XAMPP (Windows/Mac/Linux)
-   cp -r "Web Dashboard" /path/to/xampp/htdocs/makerbuddy
+   cp -r WebApp /path/to/xampp/htdocs/makerbuddy
 
    # For Apache (Linux)
-   cp -r "Web Dashboard" /var/www/html/makerbuddy
+   cp -r WebApp /var/www/html/makerbuddy
    ```
 
 2. **Access the Dashboard**
@@ -99,7 +129,7 @@ Web Dashboard/
    - Or use your server IP: `http://your-server-ip/makerbuddy/index.html`
 
 3. **Connect to MakerBuddy ESP32**
-   - Enter the device name (e.g., `makerbuddy-01` — `.local` auto-appended) or IP address in the sidebar
+   - Enter the device name (e.g., `makerbuddy-01` — `.local` auto-appended) or IP address in the centered connection panel
    - Click "Connect"
    - Dashboard establishes WebSocket connection and loads with live data
 
@@ -123,7 +153,7 @@ The dashboard communicates with the ESP32 exclusively via **WebSocket** at `ws:/
 3. Actuator commands are sent with single-letter message types:
    - `L` — LED, `R` — RGB, `Y` — Relay, `V` — Servo, `Z` — Buzzer, `D` — LCD
    - `P` — Potentiometer mapping, `M` — Soil calibration, `O` — OTA update
-   - `X` — Sequence management (add/delete/start/stop/toggle/edit)
+   - `X` — Sequence management (add/delete/start/stop/toggle). Editing is implemented in the client as delete followed by add.
 
 ### Compact JSON Keys
 | Key | Meaning | Key | Meaning |
@@ -191,10 +221,8 @@ All settings are stored in `localStorage` under key `dashboardSettings`:
 ## 📱 Mobile Support
 
 - Touch-friendly controls with larger tap targets
-- Collapsible sidebar with backdrop overlay
-- Sidebar auto-collapses on mobile when connected to maximize screen space
+- Responsive top-bar social icons and connection controls
 - Optimized spacing and font sizes at 480px and 768px breakpoints
-- Sidebar re-shows on mobile after disconnection
 
 ## 🔧 Troubleshooting
 
@@ -241,10 +269,11 @@ Tested and working on:
 | Metric | Value |
 |---|---|
 | Data refresh | Real-time via WebSocket push (2s interval) |
-| Typical message size | ~200-300 bytes per sensor update |
-| Control latency | <20ms (WebSocket round-trip) |
-| Memory usage | ~15MB (browser dependent) |
-| Mobile performance | Optimized for 60fps |
+| Sequence capacity | 10 rules, 10 steps per rule |
+| Servo input throttle | 50ms in the WebApp |
+
+Browser memory, frame rate, payload size, and network latency vary by device and
+are not fixed guarantees of the source.
 
 ## 🔒 Security Notes
 
@@ -252,7 +281,7 @@ Tested and working on:
 
 - No authentication implemented (add if exposing to internet)
 - WebSocket and HTTP connections are unencrypted
-- Input validation is client-side only
+- Firmware performs bounds checks for many protocol fields, but there is no authentication or authorization
 - Suitable for home/lab environments
 
 ## 📱 Social Links
@@ -268,7 +297,29 @@ Stay connected with MakerBuddy:
 
 ## 📝 Version History
 
-### v1.2 (Current)
+### v1.9 (Current)
+
+- MakerBuddy IoT Kit IP address added to the Settings device-information card.
+- LCD inputs validate wildcard-expanded display width and show live column counts.
+
+### v1.8
+- Sidebar removed and social links moved into the responsive top bar
+- Configured device name displayed for both hostname and IP connections
+- Legacy hard-coded firmware identity detected and reported clearly
+- Device information moved into the Settings tab
+- Rule table displayed before the create/edit form
+
+### v1.7
+- Timer UI simplified (Interval label, Duration removed)
+- Step values persist when adding/removing steps (DOM sync fix)
+- LED On defaults to value 255; Servo value restricted to 0-180
+- Chrome Extension parity
+
+### v1.6
+- Push button sensor card with live Pressed/Released state display
+- Reserved relay fields (`od`/`fd`) are sent by the UI; current firmware ignores them
+
+### v1.2
 - WebSocket communication replaces HTTP polling
 - Rule Engine tab with create/edit/manage workflow and 4 loop modes
 - Multi-step rules (up to 10 steps) with priority-based device locking

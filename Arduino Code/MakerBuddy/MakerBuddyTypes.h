@@ -1,5 +1,5 @@
 #pragma once
-// v1.1
+// v2.1
 #include <Arduino.h>
 
 enum SeqAction : uint8_t {
@@ -30,7 +30,7 @@ enum SeqLoopMode : uint8_t {
   SLM_TIMER = 2,
   SLM_CONDITION = 3
 };
-enum SeqTimerType : uint8_t { STT_DURATION = 0, STT_INTERVAL = 1 };
+enum SeqTimerType : uint8_t { STT_INTERVAL = 0 };
 enum SeqSensor : uint8_t {
   SS_TEMPERATURE = 0,
   SS_HUMIDITY = 1,

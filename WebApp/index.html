@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <!--
-  MakerBuddy V1.x - Web Dashboard
+  MakerBuddy V1.9 - Web Dashboard
 
   Copyright (C) 2024 Muhammad Afzal
   Website: https://makerbuddy.cc
   Email: info@makerbuddy.cc
-  Version: 1.5
-  Release Date: 19 May 2026
+  Version: 1.9
+  Release Date: 8 August 2026
  
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -38,6 +38,7 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="application-version" content="1.9">
     <title>MakerBuddy Web App Dashboard</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
@@ -70,100 +71,57 @@
         <p class="chrome-modal-note">Free &bull; No account required &bull; Works with MakerBuddy IoT Kit</p>
     </div>
 
-    <!-- Sidebar Toggle Button -->
-    <button class="sidebar-toggle" id="sidebarToggle">✕</button>
+    <div class="container" id="mainContent">
 
-    <!-- Mobile Backdrop -->
-    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
-
-    <!-- Sidebar -->
-    <div class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <div class="sidebar-logo">
-                <img src="images/logo.png" alt="MakerBuddy Logo">
-            </div>
-            <div style="text-align: center; margin: 10px 0;">
-                <a href="https://makerbuddy.cc" target="_blank"
-                    style="display: inline-block; margin: 0 8px; color: #2196F3; text-decoration: none; font-weight: bold; font-size: 13px;">Home
-                    Page</a>
-                <a href="https://www.makerbuddy.cc/curriculum" target="_blank"
-                    style="display: inline-block; margin: 0 8px; color: #2196F3; text-decoration: none; font-weight: bold; font-size: 13px;">Getting
-                    Started</a>
-            </div>
-
-            <button class="theme-toggle" id="themeToggle">
-                <span id="themeIcon">🌙</span>
-                <span id="themeText">Dark</span>
-            </button>
-        </div>
-
-        <div class="sidebar-section">
-            <h3 class="sidebar-title">Connection</h3>
-            <input type="text" id="ipInput" placeholder="Device Name or IP Address" class="sidebar-input">
-            <button class="btn btn-primary" id="connectBtn" style="width: 100%; margin-top: 10px;">🔌 Connect</button>
-            <button class="btn btn-danger hidden" id="disconnectBtn" style="width: 100%; margin-top: 10px;">❌
-                Disconnect</button>
-        </div>
-
-        <div class="sidebar-section device-info hidden" id="deviceInfo">
-            <h3 class="sidebar-title">Device Info</h3>
-            <div class="info-row">
-                <span class="info-label">Device:</span>
-                <span class="info-value" id="deviceName">--</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Firmware:</span>
-                <span class="info-value" id="deviceFirmware">--</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">MAC:</span>
-                <span class="info-value" id="macAddress">--</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Uptime:</span>
-                <span class="info-value" id="deviceUptime">--</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Free Memory:</span>
-                <span class="info-value" id="freeMemory">--</span>
-            </div>
-            <div class="info-row">
-                <span class="info-label">Total Memory:</span>
-                <span class="info-value" id="totalMemory">--</span>
-            </div>
-        </div>
-
-        <div class="sidebar-section">
-            <h3 class="sidebar-title">Status</h3>
-            <div class="status-display">
-                <span class="status-indicator" id="statusIndicator"></span>
-                <div>
-                    <div class="status-text" id="connectionStatus">Not Connected</div>
-                    <div class="status-text" style="font-size: 12px;">
-                        <span id="lastUpdate">Never</span> • <span id="uptime">0s</span>
-                    </div>
+        <!-- Chrome-extension-style top connection and status bar -->
+        <div class="app-header">
+            <div class="app-header-left">
+                <img src="images/logo.png" alt="MakerBuddy">
+                <div class="app-header-links">
+                    <a href="https://makerbuddy.cc" target="_blank">Home Page</a>
+                    <a href="https://www.makerbuddy.cc/curriculum" target="_blank">Getting Started</a>
                 </div>
             </div>
-        </div>
-
-        <div class="sidebar-section" style="margin-top: auto; padding-top: 20px;">
-            <div class="social-links">
-                <a href="https://www.youtube.com/@makerbuddycc" target="_blank" title="YouTube"><i
-                        class="bi bi-youtube"></i></a>
-                <a href="https://github.com/MakerBuddy" target="_blank" title="GitHub"><i class="bi bi-github"></i></a>
-                <a href="https://www.facebook.com/makerbuddycc" target="_blank" title="Facebook"><i
-                        class="bi bi-facebook"></i></a>
-                <a href="https://www.linkedin.com/company/makerbuddy/" target="_blank" title="LinkedIn"><i
-                        class="bi bi-linkedin"></i></a>
-                <a href="https://www.hackster.io/makerbuddy" target="_blank" title="Hackster.io"><i
-                        class="bi bi-laptop"></i></a>
-                <a href="https://www.patreon.com/cw/MakerBuddy" target="_blank" title="Patreon"><i
-                        class="bi bi-heart-fill"></i></a>
+            <nav class="app-social-icons" aria-label="MakerBuddy social media">
+                <a href="https://www.youtube.com/@makerbuddycc" target="_blank" title="YouTube"
+                    aria-label="MakerBuddy on YouTube"><i class="bi bi-youtube"></i></a>
+                <a href="https://github.com/MakerBuddy" target="_blank" title="GitHub"
+                    aria-label="MakerBuddy on GitHub"><i class="bi bi-github"></i></a>
+                <a href="https://www.facebook.com/makerbuddycc" target="_blank" title="Facebook"
+                    aria-label="MakerBuddy on Facebook"><i class="bi bi-facebook"></i></a>
+                <a href="https://www.linkedin.com/company/makerbuddy/" target="_blank" title="LinkedIn"
+                    aria-label="MakerBuddy on LinkedIn"><i class="bi bi-linkedin"></i></a>
+                <a href="https://www.hackster.io/makerbuddy" target="_blank" title="Hackster.io"
+                    aria-label="MakerBuddy on Hackster.io"><i class="bi bi-laptop"></i></a>
+                <a href="https://www.patreon.com/cw/MakerBuddy" target="_blank" title="Patreon"
+                    aria-label="Support MakerBuddy on Patreon"><i class="bi bi-heart-fill"></i></a>
+            </nav>
+            <div class="app-header-right">
+                <div class="device-name-chip hidden" id="connectedDeviceName">Device: --</div>
+                <div class="header-status">
+                    <span class="status-indicator" id="statusIndicator"></span>
+                    <span class="header-status-copy">
+                        <span class="status-text" id="connectionStatus">Disconnected</span>
+                        <span class="status-meta"><span id="lastUpdate">Never</span> • <span id="uptime">0s</span></span>
+                    </span>
+                </div>
+                <button class="theme-toggle" id="themeToggle">
+                    <span id="themeIcon">🌙</span>
+                    <span id="themeText">Dark</span>
+                </button>
+                <button class="btn btn-danger hidden" id="disconnectBtn">❌ Disconnect</button>
             </div>
         </div>
-    </div>
 
-    <div class="container" id="mainContent">
+        <div class="connection-panel" id="connectionPanel">
+            <h2>Connect to Device</h2>
+            <p>Enter the device name created during Wi-Fi setup or its local IP address.</p>
+            <div class="connection-panel-actions">
+                <input type="text" id="ipInput"
+                    placeholder="Device Name or IP Address (e.g., makerbuddy-01 or 192.168.1.100)">
+                <button class="btn btn-primary" id="connectBtn">🔌 Connect</button>
+            </div>
+        </div>
 
         <!-- Tab Navigation -->
         <div id="tabNavigation" class="hidden" style="margin-bottom: 20px;">
@@ -457,14 +415,15 @@
                             </label>
                         </div>
                         <div class="control-group hidden" id="customTextGroup">
-                            <input type="text" id="customLcdText1" maxlength="16" placeholder="e.g., Temp: {temp}C"
+                            <input type="text" id="customLcdText1" class="lcd-template-input" maxlength="64" placeholder="e.g., Temp: {temp}C"
                                 style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); margin-bottom: 8px; font-size: 13px;">
-                            <input type="text" id="customLcdText2" maxlength="16" placeholder="e.g., Humid: {humidity}%"
+                            <input type="text" id="customLcdText2" class="lcd-template-input" maxlength="64" placeholder="e.g., Humid: {humidity}%"
                                 style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); margin-bottom: 8px; font-size: 13px;">
                             <div
                                 style="background: var(--bg-secondary); padding: 10px; border-radius: 8px; margin-bottom: 8px; font-size: 11px; color: var(--text-secondary); line-height: 1.4;">
                                 <strong>💡 Wildcards:</strong> {temp}, {humidity}, {ds18b20}, {light}, {gas}, {soil},
-                                {distance}, {pot}, {motion}, {button}
+                                {distance}, {pot}, {motion}, {button}<br>
+                                Wildcards count by their displayed value, not by the length of their name.
                             </div>
                             <button class="btn btn-primary" id="updateLcdBtn"
                                 style="width: 100%; padding: 8px; font-size: 13px;">📝 Update</button>
@@ -483,7 +442,7 @@
         <div id="sequencesTab" class="tab-content hidden">
 
             <!-- Add Rule Form Card -->
-            <div class="control-card mb-20">
+            <div class="control-card mb-20 rule-form-card">
                 <div class="control-header">
                     <div class="control-icon">➕</div>
                     <div class="control-title">Create Rule</div>
@@ -550,27 +509,9 @@
                         <div
                             style="background: var(--bg-secondary); padding: 18px; border-radius: 10px; border: 2px solid var(--border-color);">
                             <label
-                                style="font-weight: 600; color: var(--text-primary); margin-bottom: 12px; display: block;">⏱️
-                                Timer Mode</label>
+                                style="font-weight: 600; color: var(--text-primary); margin-bottom: 12px; display: block;">Interval</label>
 
-                            <!-- Timer Type Selection -->
-                            <div style="display: flex; gap: 15px; margin-bottom: 15px;">
-                                <label style="display: flex; align-items: center; cursor: pointer;">
-                                    <input type="radio" name="timerType" value="duration" id="timerDuration" checked
-                                        style="margin-right: 8px;">
-                                    <span style="font-size: 14px; color: var(--text-primary);">Duration (Run for X
-                                        time)</span>
-                                </label>
-                                <label style="display: flex; align-items: center; cursor: pointer;">
-                                    <input type="radio" name="timerType" value="interval" id="timerInterval"
-                                        style="margin-right: 8px;">
-                                    <span style="font-size: 14px; color: var(--text-primary);">Interval (Repeat every X
-                                        time)</span>
-                                </label>
-
-                            </div>
-
-                            <!-- Duration/Interval Settings -->
+                            <!-- Interval Settings -->
                             <div id="durationIntervalSettings">
                                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
                                     <div>
@@ -787,7 +728,7 @@
             </div>
 
             <!-- Rule Engine Table Card -->
-            <div class="control-card">
+            <div class="control-card rule-table-card">
                 <div class="control-header">
                     <div class="control-icon">🎛️</div>
                     <div class="control-title">Rule Engine</div>
@@ -821,6 +762,44 @@
 
         <!-- Settings Tab -->
         <div id="settingsTab" class="tab-content hidden">
+
+            <!-- Device Information Card -->
+            <div class="control-card mb-20 hidden" id="deviceInfo">
+                <div class="control-header">
+                    <div class="control-icon">ℹ️</div>
+                    <div class="control-title">Device Information</div>
+                </div>
+                <div class="device-info-grid">
+                    <div class="info-row">
+                        <span class="info-label">Device</span>
+                        <span class="info-value" id="deviceName">--</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">IP Address</span>
+                        <span class="info-value" id="deviceIpAddress">--</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Firmware</span>
+                        <span class="info-value" id="deviceFirmware">--</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">MAC Address</span>
+                        <span class="info-value" id="macAddress">--</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Uptime</span>
+                        <span class="info-value" id="deviceUptime">--</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Free Memory</span>
+                        <span class="info-value" id="freeMemory">--</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Total Memory</span>
+                        <span class="info-value" id="totalMemory">--</span>
+                    </div>
+                </div>
+            </div>
 
             <!-- OTA Update Card -->
             <div class="control-card mb-20">
@@ -1211,6 +1190,92 @@
             }
         }
 
+        const LCD_MAX_COLUMNS = 16;
+        const LCD_MAX_TEMPLATE_LENGTH = 64;
+        const LCD_WILDCARD_COLUMNS = Object.freeze({
+            '{temp}': 5,
+            '{humidity}': 5,
+            '{ds18b20}': 5,
+            '{light}': 3,
+            '{gas}': 3,
+            '{soil}': 3,
+            '{distance}': 5,
+            '{pot}': 3,
+            '{motion}': 3,
+            '{button}': 3
+        });
+
+        function getLcdDisplayWidth(value, allowIncompleteWildcard = false) {
+            const entries = Object.entries(LCD_WILDCARD_COLUMNS);
+            let width = 0;
+
+            for (let index = 0; index < value.length;) {
+                const match = entries.find(([token]) => value.startsWith(token, index));
+                if (match) {
+                    width += match[1];
+                    index += match[0].length;
+                    continue;
+                }
+
+                if (allowIncompleteWildcard && value[index] === '{') {
+                    const fragment = value.slice(index);
+                    const candidates = entries.filter(([token]) => token.startsWith(fragment));
+                    if (candidates.length > 0) {
+                        width += Math.max(...candidates.map(([, columns]) => columns));
+                        break;
+                    }
+                }
+
+                width++;
+                index++;
+            }
+
+            return width;
+        }
+
+        function updateLcdTemplateInput(input, allowIncompleteWildcard = true) {
+            const width = getLcdDisplayWidth(input.value, allowIncompleteWildcard);
+            const valid = input.disabled || width <= LCD_MAX_COLUMNS;
+            const counter = input.nextElementSibling?.classList.contains('lcd-column-count')
+                ? input.nextElementSibling
+                : null;
+
+            input.setCustomValidity(valid ? '' : `This line needs ${width} LCD columns; only 16 are available.`);
+            input.classList.toggle('lcd-input-invalid', !valid);
+            if (counter) {
+                counter.textContent = `${width}/${LCD_MAX_COLUMNS} display columns`;
+                counter.classList.toggle('is-over-limit', !valid);
+            }
+            return valid;
+        }
+
+        function bindLcdTemplateInputs(root = document) {
+            root.querySelectorAll('.lcd-template-input').forEach(input => {
+                if (input.dataset.lcdWidthBound === 'true') return;
+                input.dataset.lcdWidthBound = 'true';
+                input.maxLength = LCD_MAX_TEMPLATE_LENGTH;
+
+                const counter = document.createElement('div');
+                counter.className = 'lcd-column-count';
+                input.insertAdjacentElement('afterend', counter);
+                input.addEventListener('input', () => updateLcdTemplateInput(input, true));
+                updateLcdTemplateInput(input, true);
+            });
+        }
+
+        function validateLcdTemplateInputs(inputs) {
+            for (const input of inputs) {
+                if (!updateLcdTemplateInput(input, false)) {
+                    input.reportValidity();
+                    input.focus();
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        bindLcdTemplateInputs();
+
         // Global variables
         let esp32IP = '';
         let isConnected = false;
@@ -1268,9 +1333,6 @@
             setCard('lcdControlCard', 'lcdWarning', used.lcd, ['customLcdText1', 'customLcdText2', 'updateLcdBtn'], ['input[name="lcdMode"]']);
         }
 
-        // Check if we're on mobile - defined early
-        const isMobile = () => window.innerWidth <= 768;
-
         // Connection
         document.getElementById('connectBtn').addEventListener('click', connectToDevice);
         document.getElementById('disconnectBtn').addEventListener('click', disconnectFromDevice);
@@ -1315,6 +1377,7 @@
                     isConnected = true;
                     startTime = Date.now();
 
+                    document.getElementById('connectionPanel').classList.add('hidden');
                     document.getElementById('connectBtn').classList.add('hidden');
                     document.getElementById('disconnectBtn').classList.remove('hidden');
                     document.getElementById('tabNavigation').classList.remove('hidden');
@@ -1326,9 +1389,6 @@
                     startUpdateChecker();
                     loadSequences();
 
-                    if (isMobile() && !sidebar.classList.contains('collapsed')) {
-                        toggleSidebar();
-                    }
                 };
 
                 ws.onmessage = (evt) => {
@@ -1396,8 +1456,14 @@
 
             connectBtn.classList.remove('hidden');
             disconnectBtn.classList.add('hidden');
+            document.getElementById('connectionPanel').classList.remove('hidden');
+            const connectedDeviceName = document.getElementById('connectedDeviceName');
+            connectedDeviceName.textContent = 'Device: --';
+            connectedDeviceName.classList.add('hidden');
+            connectedDeviceName.classList.remove('device-name-chip--warning');
             document.getElementById('deviceInfo').classList.add('hidden');
             document.getElementById('deviceName').textContent = '--';
+            document.getElementById('deviceIpAddress').textContent = '--';
             document.getElementById('deviceFirmware').textContent = '--';
             document.getElementById('macAddress').textContent = '--';
             document.getElementById('deviceUptime').textContent = '--';
@@ -1414,14 +1480,21 @@
             sequencesCache = [];
             updateAutomationIndicators();
 
-            // Show sidebar on mobile after disconnection
-            if (isMobile() && sidebar.classList.contains('collapsed')) {
-                toggleSidebar();
-            }
         }
 
         function showDeviceInfo(data) {
-            document.getElementById('deviceName').textContent = data.dn || data.deviceName || 'ESP32';
+            const reportedName = String(data.dn || data.deviceName || '').trim();
+            const legacyIdentity = reportedName === 'MakerBuddy IoT Kit';
+            const name = reportedName && !legacyIdentity ? reportedName : 'Not configured';
+            document.getElementById('deviceName').textContent = name;
+            document.getElementById('deviceIpAddress').textContent = data.ip || '--';
+            const connectedDeviceName = document.getElementById('connectedDeviceName');
+            connectedDeviceName.textContent = legacyIdentity
+                ? 'Device name unavailable — update firmware'
+                : 'Device: ' + name;
+            connectedDeviceName.classList.toggle('device-name-chip--warning', legacyIdentity || !reportedName);
+            connectedDeviceName.classList.remove('hidden');
+            document.getElementById('connectionStatus').textContent = 'Connected';
             document.getElementById('macAddress').textContent = data.mc || data.mac || '--';
             document.getElementById('deviceUptime').textContent = formatUptime(data.up || data.uptime || 0);
 
@@ -1680,8 +1753,11 @@
         });
 
         document.getElementById('updateLcdBtn').addEventListener('click', () => {
-            const text1 = document.getElementById('customLcdText1').value.trim();
-            const text2 = document.getElementById('customLcdText2').value.trim();
+            const line1Input = document.getElementById('customLcdText1');
+            const line2Input = document.getElementById('customLcdText2');
+            if (!validateLcdTemplateInputs([line1Input, line2Input])) return;
+            const text1 = line1Input.value.trim();
+            const text2 = line2Input.value.trim();
             if (text1) {
                 controlLCD('custom', text1, text2);
             }
@@ -2103,96 +2179,6 @@
         // Initialize
         updateColorPreview();
 
-        // Sidebar Toggle
-        const sidebar = document.getElementById('sidebar');
-        const sidebarToggle = document.getElementById('sidebarToggle');
-        const mainContent = document.getElementById('mainContent');
-        const sidebarBackdrop = document.getElementById('sidebarBackdrop');
-
-        // Initialize sidebar state based on connection status and device type
-        function initializeSidebar() {
-            const mobile = isMobile();
-
-            if (mobile) {
-                // On mobile, show sidebar if not connected
-                if (!isConnected) {
-                    sidebar.classList.remove('collapsed');
-                    mainContent.classList.remove('expanded');
-                    sidebarToggle.textContent = '✕';
-                    sidebarBackdrop.classList.add('active');
-                    document.body.classList.add('sidebar-open');
-                } else {
-                    sidebar.classList.add('collapsed');
-                    mainContent.classList.add('expanded');
-                    sidebarToggle.textContent = '☰';
-                    sidebarBackdrop.classList.remove('active');
-                    document.body.classList.remove('sidebar-open');
-                }
-                sidebarToggle.style.left = '';
-            } else {
-                // On desktop, check saved state
-                sidebarBackdrop.classList.remove('active');
-                document.body.classList.remove('sidebar-open');
-                let sidebarOpen = localStorage.getItem('sidebarOpen');
-                if (sidebarOpen === null || sidebarOpen === 'true') {
-                    sidebar.classList.remove('collapsed');
-                    mainContent.classList.remove('expanded');
-                    sidebarToggle.textContent = '✕';
-                    sidebarToggle.style.left = '254px';
-                } else {
-                    sidebar.classList.add('collapsed');
-                    mainContent.classList.add('expanded');
-                    sidebarToggle.textContent = '☰';
-                    sidebarToggle.style.left = '0px';
-                }
-            }
-        }
-
-        // Initialize on load
-        initializeSidebar();
-
-        function toggleSidebar() {
-            sidebar.classList.toggle('collapsed');
-            mainContent.classList.toggle('expanded');
-            const isOpen = !sidebar.classList.contains('collapsed');
-            sidebarToggle.textContent = isOpen ? '✕' : '☰';
-
-            // Handle backdrop and body scroll on mobile
-            if (isMobile()) {
-                if (isOpen) {
-                    sidebarBackdrop.classList.add('active');
-                    document.body.classList.add('sidebar-open');
-                } else {
-                    sidebarBackdrop.classList.remove('active');
-                    document.body.classList.remove('sidebar-open');
-                }
-            } else {
-                // Only set left position on desktop
-                sidebarToggle.style.left = isOpen ? '254px' : '0px';
-                document.body.classList.remove('sidebar-open');
-            }
-
-            localStorage.setItem('sidebarOpen', isOpen);
-        }
-
-        sidebarToggle.addEventListener('click', toggleSidebar);
-
-        // Close sidebar when clicking backdrop
-        sidebarBackdrop.addEventListener('click', () => {
-            if (isMobile() && !sidebar.classList.contains('collapsed')) {
-                toggleSidebar();
-            }
-        });
-
-        // Handle window resize with debounce
-        let resizeTimer;
-        window.addEventListener('resize', () => {
-            clearTimeout(resizeTimer);
-            resizeTimer = setTimeout(() => {
-                initializeSidebar();
-            }, 250);
-        });
-
         // Load settings from localStorage on page load
         loadSettings();
 
@@ -2246,15 +2232,7 @@
         setLoopRangeEnabled(false);
 
         // Timer Type Selection Handler
-        const timerTypeRadios = document.querySelectorAll('input[name="timerType"]');
         const durationIntervalSettings = document.getElementById('durationIntervalSettings');
-
-        timerTypeRadios.forEach(radio => {
-            radio.addEventListener('change', (e) => {
-                const type = e.target.value;
-                durationIntervalSettings.style.display = 'block';
-            });
-        });
 
         function updateAddStepButtonState() {
             const btn = document.getElementById('addStepBtn');
@@ -2282,14 +2260,31 @@
 
             const stepIndex = sequenceSteps.length;
             sequenceSteps.push({ action: '', value: 0, delay: 1000, lcdMode: 'custom', lcdText1: '', lcdText2: '' });
+            syncStepInputsFromDOM();
             renderSteps();
             updateAddStepButtonState();
         });
 
         function removeStep(index) {
             sequenceSteps.splice(index, 1);
+            syncStepInputsFromDOM();
             renderSteps();
             updateAddStepButtonState();
+        }
+
+        function syncStepInputsFromDOM() {
+            for (let i = 0; i < sequenceSteps.length; i++) {
+                const valEl = document.querySelector(`input[name="step${i}_value"]`);
+                if (valEl) sequenceSteps[i].value = Number(valEl.value) || 0;
+                const delayEl = document.querySelector(`input[name="step${i}_delay"]`);
+                if (delayEl) sequenceSteps[i].delay = Number(delayEl.value) || 1000;
+                const lcdModeEl = document.querySelector(`select[name="step${i}_lcdMode"]`);
+                if (lcdModeEl) sequenceSteps[i].lcdMode = lcdModeEl.value;
+                const t1El = document.querySelector(`input[name="step${i}_lcdText1"]`);
+                if (t1El) sequenceSteps[i].lcdText1 = t1El.value;
+                const t2El = document.querySelector(`input[name="step${i}_lcdText2"]`);
+                if (t2El) sequenceSteps[i].lcdText2 = t2El.value;
+            }
         }
 
         function renderSteps() {
@@ -2361,7 +2356,7 @@
                             </div>
                             <div style="${showValue ? '' : 'display:none'}">
                                 <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block; font-weight: 600;">Value</label>
-                                <input type="number" name="step${index}_value" placeholder="0-255" value="${step.value || ''}" min="0" max="255" style="padding: 12px; border-radius: 10px; border: 2px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 14px; width: 100%;">
+                                <input type="number" name="step${index}_value" placeholder="${step.action === 'servo_move' ? '0-180' : '0-255'}" value="${step.value || ''}" min="0" max="${step.action === 'servo_move' ? 180 : 255}" style="padding: 12px; border-radius: 10px; border: 2px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 14px; width: 100%;">
                             </div>
                             <div style="${isLcd ? 'display:none' : ''}">
                                 <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block; font-weight: 600;">Delay (ms)</label>
@@ -2376,12 +2371,13 @@
                                 <option value="custom" ${(step.lcdMode || 'custom') === 'custom' ? 'selected' : ''}>Custom Text</option>
                             </select>
                             <div class="step-lcd-custom" data-step="${index}" style="${(step.lcdMode || 'custom') === 'default' ? 'display:none' : ''}">
-                                <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block; font-weight: 600;">LCD Line 1 (max 16 chars)</label>
-                                <input type="text" name="step${index}_lcdText1" maxlength="16" placeholder="e.g., Temp: {temp}C" value="${step.lcdText1 || ''}" style="padding: 10px; border-radius: 8px; border: 2px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); width: 100%; margin-bottom: 8px;">
-                                <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block; font-weight: 600;">LCD Line 2 (max 16 chars)</label>
-                                <input type="text" name="step${index}_lcdText2" maxlength="16" placeholder="e.g., Humid: {humidity}%" value="${step.lcdText2 || ''}" style="padding: 10px; border-radius: 8px; border: 2px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); width: 100%; margin-bottom: 8px;">
+                            <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block; font-weight: 600;">LCD Line 1 (16 display columns)</label>
+                            <input type="text" class="lcd-template-input" name="step${index}_lcdText1" maxlength="64" ${(step.lcdMode || 'custom') === 'default' ? 'disabled' : ''} placeholder="e.g., Temp: {temp}C" value="${step.lcdText1 || ''}" style="padding: 10px; border-radius: 8px; border: 2px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); width: 100%; margin-bottom: 8px;">
+                            <label style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; display: block; font-weight: 600;">LCD Line 2 (16 display columns)</label>
+                            <input type="text" class="lcd-template-input" name="step${index}_lcdText2" maxlength="64" ${(step.lcdMode || 'custom') === 'default' ? 'disabled' : ''} placeholder="e.g., Humid: {humidity}%" value="${step.lcdText2 || ''}" style="padding: 10px; border-radius: 8px; border: 2px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); width: 100%; margin-bottom: 8px;">
                                 <div style="background: var(--bg-primary); padding: 10px; border-radius: 8px; font-size: 11px; color: var(--text-secondary);">
-                                    <strong>💡 Wildcards:</strong> {temp}, {humidity}, {ds18b20}, {light}, {gas}, {soil}, {distance}, {pot}, {motion}, {button}
+                                <strong>💡 Wildcards:</strong> {temp}, {humidity}, {ds18b20}, {light}, {gas}, {soil}, {distance}, {pot}, {motion}, {button}<br>
+                                Wildcards count by displayed width.
                                 </div>
                             </div>
                         </div>
@@ -2391,11 +2387,18 @@
                 container.insertAdjacentHTML('beforeend', stepHtml);
             });
 
+            bindLcdTemplateInputs(container);
+
             // Attach action change events (to toggle LCD options)
             document.querySelectorAll('.step-action-select').forEach(select => {
                 select.addEventListener('change', (e) => {
                     const idx = parseInt(e.target.dataset.step);
                     sequenceSteps[idx].action = e.target.value;
+                    if (e.target.value === 'led_on' || e.target.value === 'led_pwm') {
+                        sequenceSteps[idx].value = 255;
+                    } else if (e.target.value === 'servo_move') {
+                        sequenceSteps[idx].value = Math.min(sequenceSteps[idx].value || 0, 180);
+                    }
                     renderSteps();
                 });
             });
@@ -2407,7 +2410,12 @@
                     sequenceSteps[idx].lcdMode = e.target.value;
                     const customDiv = document.querySelector(`.step-lcd-custom[data-step="${idx}"]`);
                     if (customDiv) {
-                        customDiv.style.display = e.target.value === 'default' ? 'none' : '';
+                        const customEnabled = e.target.value !== 'default';
+                        customDiv.style.display = customEnabled ? '' : 'none';
+                        customDiv.querySelectorAll('.lcd-template-input').forEach(input => {
+                            input.disabled = !customEnabled;
+                            updateLcdTemplateInput(input, true);
+                        });
                     }
                 });
             });
@@ -2441,9 +2449,6 @@
             // Reset to default loop mode (none)
             document.getElementById('loopNone').checked = true;
 
-            // Reset timer type to duration
-            document.getElementById('timerDuration').checked = true;
-
             // Clear editing state
             delete form.dataset.editingIndex;
 
@@ -2468,6 +2473,9 @@
         document.getElementById('sequenceForm').addEventListener('submit', (e) => {
             e.preventDefault();
             const form = e.target;
+            const visibleLcdInputs = Array.from(form.querySelectorAll('.lcd-template-input'))
+                .filter(input => input.closest('.step-lcd-custom')?.style.display !== 'none');
+            if (!validateLcdTemplateInputs(visibleLcdInputs)) return;
             const formData = new FormData(form);
 
             if (sequenceSteps.length > 10) {
@@ -2505,15 +2513,11 @@
 
             // Add timer-based loop data
             if (loopMode === 'timer') {
-                const timerType = formData.get('timerType') || 'duration';
-                data.timerType = timerType;
-
-                if (timerType === 'duration' || timerType === 'interval') {
-                    const hours = parseInt(formData.get('loopHours') || 0);
-                    const minutes = parseInt(formData.get('loopMinutes') || 0);
-                    const seconds = parseInt(formData.get('loopSeconds') || 0);
-                    data.loopDuration = (hours * 3600 + minutes * 60 + seconds) * 1000; // Convert to milliseconds
-                }
+                data.timerType = 'interval';
+                const hours = parseInt(formData.get('loopHours') || 0);
+                const minutes = parseInt(formData.get('loopMinutes') || 0);
+                const seconds = parseInt(formData.get('loopSeconds') || 0);
+                data.loopDuration = (hours * 3600 + minutes * 60 + seconds) * 1000; // Convert to milliseconds
             }
 
             // Add condition-based loop data
@@ -2571,9 +2575,6 @@
             // Reset to default loop mode (none)
             document.getElementById('loopNone').checked = true;
 
-            // Reset timer type to duration
-            document.getElementById('timerDuration').checked = true;
-
             // Restore empty state
             const container = document.getElementById('stepsContainer');
             container.innerHTML = `
@@ -2594,7 +2595,7 @@
                 e: data.enabled === 'true' ? 1 : 0,
                 n: data.name || 'New Rule',
                 lm: data.loopMode || 'none',
-                tt: data.timerType || 'duration',
+                tt: 'interval',
                 ld: Number(data.loopDuration || 0),
 
                 lr: data.loopSensor || '',
@@ -2666,16 +2667,11 @@
             // Load timer settings if applicable
             if (loopMode === 'timer') {
                 timerLoopSettings.style.display = 'block';
-                const timerType = seq.tt || 'duration';
-                document.querySelector(`input[name="timerType"][value="${timerType}"]`).checked = true;
-
-                if (timerType === 'duration' || timerType === 'interval') {
-                    durationIntervalSettings.style.display = 'block';
-                    const totalSec = Math.floor((seq.ld || 0) / 1000);
-                    document.getElementById('loopHours').value = Math.floor(totalSec / 3600);
-                    document.getElementById('loopMinutes').value = Math.floor((totalSec % 3600) / 60);
-                    document.getElementById('loopSeconds').value = totalSec % 60;
-                }
+                durationIntervalSettings.style.display = 'block';
+                const totalSec = Math.floor((seq.ld || 0) / 1000);
+                document.getElementById('loopHours').value = Math.floor(totalSec / 3600);
+                document.getElementById('loopMinutes').value = Math.floor((totalSec % 3600) / 60);
+                document.getElementById('loopSeconds').value = totalSec % 60;
             }
 
             // Load condition settings if applicable
@@ -2773,20 +2769,13 @@
                 if (loopMode === 'forever') {
                     loopDisplay = '<span style="color: #10b981;">♾️ Forever</span>';
                 } else if (loopMode === 'timer') {
-                    const timerType = seq.tt || 'duration';
                     const totalSec = Math.floor((seq.ld || 0) / 1000);
                     const hours = Math.floor(totalSec / 3600);
                     const mins = Math.floor((totalSec % 3600) / 60);
                     const secs = totalSec % 60;
                     const timeStr = hours > 0 ? `${hours}h ${mins}m` : mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
-
-                    if (timerType === 'interval') {
-                        loopDisplay = `<span style="color: #3b82f6;">🔄 Interval</span>`;
-                        loopDetails = `<div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">Every ${timeStr}</div>`;
-                    } else {
-                        loopDisplay = `<span style="color: #8b5cf6;">⏱️ Duration</span>`;
-                        loopDetails = `<div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">For ${timeStr}</div>`;
-                    }
+                    loopDisplay = '<span style="color: #3b82f6;">🔄 Interval</span>';
+                    loopDetails = `<div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">Every ${timeStr}</div>`;
                 } else if (loopMode === 'condition') {
                     loopDisplay = `<span style="color: #ec4899;">🎯 Condition</span>`;
                     loopDetails = `<div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">${seq.lr || ''} ${seq.lo || ''} ${seq.lt ?? ''}</div>`;

@@ -1,10 +1,11 @@
 /*
- * MakerBuddy V1.0 - Web Dashboard Styles
+ * MakerBuddy V1.9 - Web Dashboard Styles
  *
  * Copyright (C) 2024 Muhammad Afzal
  * Website: https://makerbuddy.cc
  * Email: info@makerbuddy.cc
- * Version: 1.0
+ * Version: 1.9
+ * Release Date: 8 August 2026
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -74,149 +75,206 @@ body {
     overflow-x: hidden;
 }
 
-body.sidebar-open {
-    overflow: hidden;
-}
-
-/* Sidebar Styles */
-.sidebar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 300px;
-    height: 100vh;
-    background: var(--glass-bg);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-right: 1px solid var(--glass-border);
-    box-shadow: var(--shadow-lg);
-    padding: 20px;
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    z-index: 1000;
-    overflow-y: auto;
-}
-
-.sidebar.collapsed {
-    transform: translateX(-300px);
-}
-
-.sidebar-header {
-    margin-bottom: 30px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.sidebar-logo {
-    text-align: center;
-    margin-bottom: 20px;
-}
-
-.sidebar-logo img {
-    max-width: 200px;
-    height: auto;
-}
-
-.sidebar-section {
-    margin-bottom: 30px;
-}
-
-.sidebar-title {
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-bottom: 16px;
-}
-
-.sidebar-input {
-    width: 100%;
-    padding: 12px 14px;
-    border: 1px solid var(--border-color);
-    border-radius: 10px;
-    background: var(--bg-secondary);
-    color: var(--text-primary);
-    font-size: 14px;
-    transition: all 0.3s;
-}
-
-.sidebar-input:focus {
-    outline: none;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-}
-
-.sidebar-toggle {
-    position: fixed;
-    top: 20px;
-    left: 254px;
-    width: 46px;
-    height: 46px;
-    background: var(--primary-color);
-    color: white;
-    border: none;
-    border-radius: 0 12px 12px 0;
-    font-size: 18px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    z-index: 1002;
-    box-shadow: var(--shadow-md);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.sidebar-toggle:hover {
-    background: var(--primary-dark);
-    box-shadow: var(--shadow-lg);
-}
-
-/* Mobile Backdrop */
-.sidebar-backdrop {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 999;
-    opacity: 0;
-    transition: opacity 0.3s;
-}
-
-.sidebar-backdrop.active {
-    display: block;
-    opacity: 1;
-}
-
-.status-display {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 12px;
-    background: var(--bg-secondary);
-    border-radius: 10px;
-    border: 1px solid var(--border-color);
-}
-
 .container {
     max-width: 1600px;
     margin: 0 auto;
     padding: 20px;
-    margin-left: 300px;
-    transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.container.expanded {
-    margin-left: 0;
+/* Chrome-extension-style top bar */
+.app-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 14px 20px;
+    margin-bottom: 20px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    box-shadow: var(--shadow-md);
 }
 
-.sidebar .theme-toggle {
-    width: 100%;
+.app-header-left,
+.app-header-right,
+.header-status,
+.connection-panel-actions {
+    display: flex;
+    align-items: center;
+}
+
+.app-header-left,
+.app-header-right {
+    gap: 16px;
+}
+
+.app-header-left,
+.app-header-right {
+    flex-shrink: 0;
+}
+
+.app-header-left img {
+    width: auto;
+    height: 38px;
+}
+
+.app-header-links {
+    display: flex;
+    gap: 16px;
+}
+
+.app-header-links a {
+    color: var(--primary-color);
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.app-header-links a:hover {
+    color: var(--primary-dark);
+    text-decoration: underline;
+}
+
+.app-social-icons {
+    display: flex;
+    flex: 1;
+    align-items: center;
     justify-content: center;
-    margin-bottom: 10px;
+    gap: 8px;
+}
+
+.app-social-icons a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    color: var(--text-primary);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    font-size: 18px;
+    text-decoration: none;
+    transition: all 0.25s;
+}
+
+.app-social-icons a:hover,
+.app-social-icons a:focus-visible {
+    color: white;
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
+    transform: translateY(-2px);
+    outline: none;
+}
+
+.header-status {
+    gap: 9px;
+    padding: 8px 12px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+}
+
+.header-status-copy {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.25;
+}
+
+.status-meta {
+    color: var(--text-secondary);
+    font-size: 10px;
+}
+
+.device-name-chip {
+    max-width: 220px;
+    padding: 8px 12px;
+    overflow: hidden;
+    color: var(--primary-color);
+    background: rgba(37, 99, 235, 0.1);
+    border: 1px solid rgba(37, 99, 235, 0.22);
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.device-name-chip--warning {
+    color: var(--warning-color);
+    background: rgba(245, 158, 11, 0.12);
+    border-color: rgba(245, 158, 11, 0.35);
+}
+
+/* Connection panel shown before a device session is open */
+.connection-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    width: min(100%, 620px);
+    min-height: 360px;
+    margin: 0 auto 20px;
+    padding: 32px;
+    text-align: center;
+}
+
+.connection-panel h2 {
+    color: var(--text-primary);
+    font-size: 24px;
+}
+
+.connection-panel p {
+    max-width: 500px;
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+.connection-panel-actions {
+    width: 100%;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.connection-panel-actions input {
+    flex: 1;
+    min-width: 0;
+    padding: 13px 16px;
+    color: var(--text-primary);
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    font-size: 14px;
+    outline: none;
+    transition: all 0.3s;
+}
+
+.connection-panel-actions input:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+/* Rule list is intentionally shown before the create/edit form. */
+#sequencesTab:not(.hidden) {
+    display: flex;
+    flex-direction: column;
+}
+
+#sequencesTab .rule-table-card {
+    order: 1;
+    margin-bottom: 20px;
+}
+
+#sequencesTab .rule-form-card {
+    order: 2;
+    margin-bottom: 0;
 }
 
 /* Glass Card Effect */
@@ -967,23 +1025,22 @@ tbody tr:hover {
 }
 
 /* Device Info */
-.device-info {
-    background: var(--bg-secondary);
-    border-radius: 12px;
-    padding: 16px;
-    margin-top: 16px;
-    border: 1px solid var(--border-color);
+.device-info-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
 }
 
 .info-row {
     display: flex;
+    flex-direction: column;
+    gap: 4px;
     justify-content: space-between;
-    padding: 10px 0;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.info-row:last-child {
-    border-bottom: none;
+    min-width: 0;
+    padding: 14px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
 }
 
 .info-label {
@@ -995,9 +1052,27 @@ tbody tr:hover {
     font-size: 14px;
     font-weight: 600;
     color: var(--text-primary);
+    overflow-wrap: anywhere;
 }
 
 /* LCD Preview */
+.lcd-column-count {
+    margin: -4px 0 8px;
+    color: var(--text-secondary);
+    font-size: 11px;
+    line-height: 1.3;
+    text-align: right;
+}
+
+.lcd-column-count.is-over-limit {
+    color: var(--danger-color);
+    font-weight: 700;
+}
+
+.lcd-template-input.lcd-input-invalid {
+    border-color: var(--danger-color) !important;
+}
+
 .lcd-preview {
     background: #1a472a;
     border-radius: 12px;
@@ -1061,41 +1136,6 @@ tbody tr:hover {
     box-shadow: var(--shadow-sm);
 }
 
-/* Social Media Links */
-.social-links {
-    display: flex;
-    justify-content: center;
-    gap: 15px;
-    flex-wrap: wrap;
-}
-
-.social-links a {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    color: var(--text-primary);
-    font-size: 20px;
-    transition: all 0.3s;
-    text-decoration: none;
-}
-
-.social-links a:hover {
-    background: var(--primary-color);
-    color: white;
-    transform: translateY(-3px);
-    box-shadow: 0 6px 12px rgba(37, 99, 235, 0.3);
-    border-color: var(--primary-color);
-}
-
-.social-links a:active {
-    transform: translateY(-1px);
-}
-
 /* Responsive Design */
 @media (max-width: 1400px) {
     .grid-5 {
@@ -1116,6 +1156,15 @@ tbody tr:hover {
     .header-center,
     .header-right {
         justify-content: center;
+    }
+
+    .app-header {
+        flex-wrap: wrap;
+    }
+
+    .app-social-icons {
+        order: 3;
+        flex-basis: 100%;
     }
 }
 
@@ -1183,32 +1232,32 @@ tbody tr:hover {
 
     .container {
         padding: 12px;
-        margin-left: 0;
     }
 
-    .sidebar {
-        width: 280px;
-        transform: translateX(-280px);
+    .app-header {
+        align-items: center;
+        padding: 12px 14px;
     }
 
-    .sidebar.collapsed {
-        transform: translateX(-280px);
+    .app-header-left img {
+        height: 34px;
     }
 
-    /* Show sidebar when not collapsed on mobile */
-    .sidebar:not(.collapsed) {
-        transform: translateX(0);
+    .app-header-links {
+        display: none;
     }
 
-    .sidebar-toggle {
-        left: 0px;
-        border-radius: 12px;
-        top: 15px;
+    .app-header-right {
+        flex-wrap: wrap;
+        justify-content: flex-end;
     }
 
-    /* When sidebar is open on mobile */
-    .sidebar:not(.collapsed) ~ button.sidebar-toggle {
-        left: 234px;
+    .device-name-chip {
+        max-width: 180px;
+    }
+
+    .device-info-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .tab-btn {
@@ -1227,26 +1276,51 @@ tbody tr:hover {
         font-size: 22px;
     }
 
-    .sidebar {
-        width: 85%;
-        max-width: 320px;
-        transform: translateX(-100%);
+    .app-header {
+        flex-direction: column;
     }
 
-    .sidebar.collapsed {
-        transform: translateX(-100%);
+    .app-header-left,
+    .app-header-right,
+    .app-social-icons {
+        width: 100%;
     }
 
-    /* Show sidebar when not collapsed on small mobile */
-    .sidebar:not(.collapsed) {
-        transform: translateX(0);
+    .app-social-icons {
+        order: 2;
+        flex-basis: auto;
+        flex-wrap: wrap;
     }
 
-    .sidebar-toggle {
-        left: 10px;
-        border-radius: 12px;
-        top: 15px;
-        z-index: 1003;
+    .app-header-right {
+        order: 3;
+        justify-content: space-between;
+        gap: 8px;
+    }
+
+    .device-name-chip {
+        order: 3;
+        width: 100%;
+        max-width: none;
+        text-align: center;
+    }
+
+    .device-info-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .connection-panel {
+        min-height: 300px;
+        padding: 24px 16px;
+    }
+
+    .connection-panel-actions {
+        flex-direction: column;
+    }
+
+    .connection-panel-actions .btn {
+        justify-content: center;
+        width: 100%;
     }
 }
 
