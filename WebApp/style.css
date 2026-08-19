@@ -1,11 +1,11 @@
 /*
- * MakerBuddy V1.9 - Web Dashboard Styles
+ * MakerBuddy V2.2 - Web Dashboard Styles
  *
  * Copyright (C) 2024 Muhammad Afzal
  * Website: https://makerbuddy.cc
  * Email: info@makerbuddy.cc
- * Version: 1.9
- * Release Date: 8 August 2026
+ * Version: 2.2
+ * Release Date: 19 August 2026
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,17 +22,21 @@
  */
 
 :root {
-    --primary-color: #2563eb;
-    --primary-dark: #1e40af;
-    --primary-light: #60a5fa;
+    --primary-color: #561f7a;
+    --primary-dark: #3b1258;
+    --primary-light: #8b5aa8;
+    --accent-color: #f4971e;
+    --accent-hover: #d87a0b;
+    --accent-fg: #1a0825;
+    --accent-soft: #fdebd2;
     --success-color: #10b981;
     --danger-color: #ef4444;
-    --warning-color: #f59e0b;
-    --bg-primary: #f0f4f8;
+    --warning-color: #eab308;
+    --bg-primary: #fbf9fc;
     --bg-secondary: #ffffff;
-    --text-primary: #0f172a;
-    --text-secondary: #64748b;
-    --border-color: #e2e8f0;
+    --text-primary: #1a0825;
+    --text-secondary: #5f5565;
+    --border-color: #ded6e3;
     --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
     --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
     --shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.1);
@@ -41,17 +45,21 @@
 }
 
 [data-theme="dark"] {
-    --primary-color: #3b82f6;
-    --primary-dark: #2563eb;
-    --primary-light: #60a5fa;
+    --primary-color: #d6a7e8;
+    --primary-dark: #f4971e;
+    --primary-light: #e4c5f0;
+    --accent-color: #f4971e;
+    --accent-hover: #ffad3f;
+    --accent-fg: #1a0825;
+    --accent-soft: #5b3517;
     --success-color: #10b981;
     --danger-color: #ef4444;
-    --warning-color: #f59e0b;
-    --bg-primary: #0f172a;
-    --bg-secondary: #1e293b;
-    --text-primary: #f1f5f9;
-    --text-secondary: #94a3b8;
-    --border-color: #334155;
+    --warning-color: #eab308;
+    --bg-primary: #17101e;
+    --bg-secondary: #24172b;
+    --text-primary: #fff8ff;
+    --text-secondary: #cdbfd2;
+    --border-color: #4b3954;
     --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
     --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
     --shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.5);
@@ -1409,6 +1417,9 @@ tbody tr:hover {
     cursor: not-allowed !important;
 }
 
+.pot-mapping-lock-note { color: var(--warning-color); font-size: 11px; font-weight: 700; }
+label:has(input[name="potMapping"]:disabled) { opacity: 0.58; cursor: not-allowed; }
+
 /* ─── Chrome Extension Redirect Modal ─── */
 .chrome-modal-backdrop,
 .chrome-modal {
@@ -1621,3 +1632,81 @@ tbody tr:hover {
     display: block;
     border: 1px solid var(--glass-border);
 }
+
+/* MakerBuddy brand roles: violet structures the UI; amber carries action. */
+.btn-primary,
+.tab-btn.active,
+.chrome-modal-btn,
+#connectBtn {
+    background: var(--accent-color);
+    color: var(--accent-fg);
+    border-color: var(--accent-color);
+}
+
+.btn-primary:hover,
+.tab-btn.active:hover,
+.chrome-modal-btn:hover,
+#connectBtn:hover {
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
+}
+
+.card-info-btn:hover,
+.sensor-settings-btn:hover {
+    background: var(--accent-color);
+    color: var(--accent-fg);
+    border-color: var(--accent-color);
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
+}
+
+.firmware-notice-backdrop,
+.firmware-notice-modal {
+    position: fixed;
+    z-index: 3000;
+}
+
+.firmware-notice-backdrop {
+    inset: 0;
+    background: rgba(15, 23, 42, 0.62);
+}
+
+.firmware-notice-modal {
+    top: 50%;
+    left: 50%;
+    width: min(440px, calc(100vw - 32px));
+    transform: translate(-50%, -50%);
+    padding: 32px;
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    box-shadow: 0 24px 70px rgba(15, 23, 42, 0.3);
+    text-align: center;
+}
+
+.firmware-notice-close {
+    position: absolute;
+    top: 10px;
+    right: 14px;
+    border: 0;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 28px;
+    cursor: pointer;
+}
+
+.firmware-notice-icon { font-size: 42px; }
+.firmware-notice-modal h2 { margin: 10px 0 8px; }
+.firmware-notice-modal p { color: var(--text-secondary); line-height: 1.5; }
+.firmware-notice-details { display: flex; justify-content: center; gap: 16px; margin: 18px 0; font-weight: 700; color: var(--primary-color); }
+.firmware-notice-notes { margin: 0 0 22px; padding: 12px; border-radius: 10px; background: var(--bg-secondary); color: var(--text-secondary); white-space: pre-wrap; text-align: left; }
+.firmware-notice-action { width: 100%; }
+.firmware-notice-reminder { margin: 14px 0 0 !important; font-size: 12px; }

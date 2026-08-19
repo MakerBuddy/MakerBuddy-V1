@@ -1,5 +1,5 @@
 #pragma once
-// v2.1
+// v2.3
 #include <Arduino.h>
 
 enum SeqAction : uint8_t {
@@ -93,4 +93,29 @@ struct Sequence {
   bool conditionRaw = false;
   unsigned long conditionRawSince = 0;
   bool conditionDebounced = false;
+
+  // Extended condition data is persisted separately from the legacy compact
+  // sequence record so existing NVS sequence blobs remain compatible.
+  bool loopUseSecondCondition = false;
+  uint8_t loopSensor2 = SS_TEMPERATURE;
+  uint8_t loopOperator3 = SOP_GT;
+  float loopThreshold3 = 0.0f;
+  bool loopUseRange2 = false;
+  uint8_t loopRangeOperator2 = SROP_AND;
+  uint8_t loopOperator4 = SOP_GT;
+  float loopThreshold4 = 0.0f;
+  uint8_t loopConditionOperator = SROP_AND;
+};
+
+struct SequenceConditionExtension {
+  uint8_t version;
+  uint8_t useSecondCondition;
+  uint8_t sensor2;
+  uint8_t operator3;
+  float threshold3;
+  uint8_t useRange2;
+  uint8_t rangeOperator2;
+  uint8_t operator4;
+  float threshold4;
+  uint8_t conditionOperator;
 };

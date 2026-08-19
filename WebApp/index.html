@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <!--
-  MakerBuddy V1.9 - Web Dashboard
+  MakerBuddy V2.3 - Web Dashboard
 
   Copyright (C) 2024 Muhammad Afzal
   Website: https://makerbuddy.cc
   Email: info@makerbuddy.cc
-  Version: 1.9
-  Release Date: 8 August 2026
+  Version: 2.3
+  Release Date: 19 August 2026
  
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="application-version" content="1.9">
+    <meta name="application-version" content="2.2">
     <title>MakerBuddy Web App Dashboard</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
@@ -69,6 +69,19 @@
             Install MakerBuddy Chrome Extension
         </a>
         <p class="chrome-modal-note">Free &bull; No account required &bull; Works with MakerBuddy IoT Kit</p>
+    </div>
+
+    <!-- Firmware release notice -->
+    <div class="firmware-notice-backdrop hidden" id="firmwareNoticeBackdrop"></div>
+    <div class="firmware-notice-modal hidden" id="firmwareNoticeModal" role="dialog" aria-modal="true" aria-labelledby="firmwareNoticeTitle">
+        <button class="firmware-notice-close" id="firmwareNoticeClose" type="button" aria-label="Dismiss firmware notice">×</button>
+        <div class="firmware-notice-icon">🚀</div>
+        <h2 id="firmwareNoticeTitle">New MakerBuddy firmware</h2>
+        <p>A new firmware release is available for your device.</p>
+        <div class="firmware-notice-details"><span id="firmwareNoticeVersion">Version --</span><span id="firmwareNoticeDate">Released --</span></div>
+        <div class="firmware-notice-notes" id="firmwareNoticeNotes"></div>
+        <button class="btn btn-primary firmware-notice-action" id="firmwareNoticeAction" type="button">Got it</button>
+        <p class="firmware-notice-reminder">Dismissed notices will return after 24 hours.</p>
     </div>
 
     <div class="container" id="mainContent">
@@ -313,11 +326,15 @@
                 </div>
 
                 <!-- Potentiometer Mapping Control -->
-                <div class="control-card card-customizable" data-card-id="potmapping">
+                <div class="control-card card-customizable" data-card-id="potmapping" id="potMappingCard">
                     <div class="control-header">
                         <div class="control-icon">🎚️</div>
                         <div class="control-title">Potentiometer Mapping</div>
                         <button class="card-info-btn" data-img="images/lecture-images/06-MakerBuddy-On-Board-Potentiometer.png" data-title="Potentiometer (On-Board)" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
+                    </div>
+                    <div class="automation-warning hidden" id="potMappingWarning">
+                        <span style="font-size: 20px;">⚠️</span>
+                        <span>Some mapping targets are used by the Rule Engine and cannot be selected manually.</span>
                     </div>
                     <div class="control-group">
                         <label class="control-label">Map Potentiometer To:</label>
@@ -328,15 +345,15 @@
                             </label>
                             <label style="display: flex; align-items: center; margin-bottom: 8px;">
                                 <input type="radio" name="potMapping" value="led">
-                                <span style="margin-left: 8px; font-size: 13px;">LED PWM</span>
+                                <span style="margin-left: 8px; font-size: 13px;">LED PWM <small class="pot-mapping-lock-note hidden">(Used by Rule Engine)</small></span>
                             </label>
                             <label style="display: flex; align-items: center; margin-bottom: 8px;">
                                 <input type="radio" name="potMapping" value="rgb">
-                                <span style="margin-left: 8px; font-size: 13px;">RGB LED</span>
+                                <span style="margin-left: 8px; font-size: 13px;">RGB LED <small class="pot-mapping-lock-note hidden">(Used by Rule Engine)</small></span>
                             </label>
                             <label style="display: flex; align-items: center;">
                                 <input type="radio" name="potMapping" value="servo">
-                                <span style="margin-left: 8px; font-size: 13px;">Servo</span>
+                                <span style="margin-left: 8px; font-size: 13px;">Servo <small class="pot-mapping-lock-note hidden">(Used by Rule Engine)</small></span>
                             </label>
                         </div>
                         <div
@@ -634,9 +651,58 @@
                                             value="30" disabled>
                                     </div>
                                 </div>
-                            </div>
+                                </div>
 
-                            <div
+                                <div class="loop-condition-row" style="margin-top: 12px; align-items: end;">
+                                    <label class="loop-condition-toggle" style="display: flex; align-items: center; cursor: pointer;">
+                                        <input type="checkbox" name="loopUseSecondCondition" id="loopUseSecondCondition">
+                                        <span style="font-size: 13px; color: var(--text-primary);">Use second sensor condition</span>
+                                    </label>
+                                    <div class="loop-condition-field">
+                                        <label style="font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; display: block;">Conditions logic</label>
+                                        <select name="loopConditionOperator" id="loopConditionOperator" disabled>
+                                            <option value="AND">AND</option>
+                                            <option value="OR">OR</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div id="secondConditionSettings" class="range-settings is-disabled" style="margin-top: 10px; background: var(--bg-primary); padding: 12px; border-radius: 8px; border: 2px solid var(--border-color);">
+                                    <div class="loop-condition-row">
+                                        <div class="loop-condition-field">
+                                            <label style="font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; display: block;">Second sensor</label>
+                                            <select name="loopSensor2" id="loopSensor2" disabled>
+                                                <option value="temperature">🌡️ Temperature (DHT11)</option>
+                                                <option value="humidity">💧 Humidity (DHT11)</option>
+                                                <option value="ds18b20Temp">🌡️ Probe Temp (DS18B20)</option>
+                                                <option value="lightLevel">💡 Light Level (LDR)</option>
+                                                <option value="gasLevel">💨 Gas Level (MQ2)</option>
+                                                <option value="soilMoisture">🌱 Soil Moisture</option>
+                                                <option value="distance">📏 Distance (HC-SR04)</option>
+                                                <option value="potValue">🎚️ Potentiometer</option>
+                                                <option value="motionDetected">🏃 Motion Sensor</option>
+                                                <option value="buttonPressed">🔘 Push Button</option>
+                                            </select>
+                                        </div>
+                                        <div class="loop-condition-field">
+                                            <label style="font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; display: block;">Operator</label>
+                                            <select name="loopOperator3" id="loopOperator3" disabled>
+                                                <option value=">">Greater than (&gt;)</option><option value="&lt;">Less than (&lt;)</option><option value="&gt;=">Greater or equal (&gt;=)</option><option value="&lt;=">Less or equal (&lt;=)</option><option value="==">Equal to (==)</option>
+                                            </select>
+                                        </div>
+                                        <div class="loop-condition-field">
+                                            <label style="font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; display: block;">Threshold</label>
+                                            <input type="number" name="loopThreshold3" id="loopThreshold3" step="0.1" value="25" disabled>
+                                        </div>
+                                    </div>
+                                    <div class="loop-condition-row" style="margin-top: 10px;">
+                                        <label class="loop-condition-toggle" style="display: flex; align-items: center; cursor: pointer;"><input type="checkbox" name="loopUseRange2" id="loopUseRange2" disabled><span style="font-size: 13px; color: var(--text-primary);">Use second sensor range</span></label>
+                                        <div class="loop-condition-field"><label style="font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; display: block;">Range logic</label><select name="loopRangeOperator2" id="loopRangeOperator2" disabled><option value="AND">AND</option><option value="OR">OR</option></select></div>
+                                        <div class="loop-condition-field"><label style="font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; display: block;">Operator 2</label><select name="loopOperator4" id="loopOperator4" disabled><option value=">">Greater than (&gt;)</option><option value="&lt;">Less than (&lt;)</option><option value="&gt;=">Greater or equal (&gt;=)</option><option value="&lt;=">Less or equal (&lt;=)</option><option value="==">Equal to (==)</option></select></div>
+                                        <div class="loop-condition-field"><label style="font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; display: block;">Threshold 2</label><input type="number" name="loopThreshold4" id="loopThreshold4" step="0.1" value="30" disabled></div>
+                                    </div>
+                                </div>
+
+                                <div
                                 style="margin-top: 12px; padding: 10px; background: rgba(99, 102, 241, 0.1); border-radius: 8px; border-left: 3px solid var(--primary-color);">
                                 <p style="font-size: 12px; color: var(--text-secondary); margin: 0;">
                                     <strong>Note:</strong> Rule will continue looping while this condition is met. When
@@ -1192,27 +1258,27 @@
 
         const LCD_MAX_COLUMNS = 16;
         const LCD_MAX_TEMPLATE_LENGTH = 64;
-        const LCD_WILDCARD_COLUMNS = Object.freeze({
-            '{temp}': 5,
-            '{humidity}': 5,
-            '{ds18b20}': 5,
-            '{light}': 3,
-            '{gas}': 3,
-            '{soil}': 3,
-            '{distance}': 5,
-            '{pot}': 3,
-            '{motion}': 3,
-            '{button}': 3
+        let lcdWildcardValues = Object.freeze({
+            '{temp}': '0.0',
+            '{humidity}': '0.0',
+            '{ds18b20}': '0.0',
+            '{light}': '0',
+            '{gas}': '0',
+            '{soil}': '0',
+            '{distance}': '0.0',
+            '{pot}': '0',
+            '{motion}': 'NO',
+            '{button}': 'NO'
         });
 
         function getLcdDisplayWidth(value, allowIncompleteWildcard = false) {
-            const entries = Object.entries(LCD_WILDCARD_COLUMNS);
+            const entries = Object.entries(lcdWildcardValues);
             let width = 0;
 
             for (let index = 0; index < value.length;) {
                 const match = entries.find(([token]) => value.startsWith(token, index));
                 if (match) {
-                    width += match[1];
+                    width += match[1].length;
                     index += match[0].length;
                     continue;
                 }
@@ -1221,7 +1287,7 @@
                     const fragment = value.slice(index);
                     const candidates = entries.filter(([token]) => token.startsWith(fragment));
                     if (candidates.length > 0) {
-                        width += Math.max(...candidates.map(([, columns]) => columns));
+                        width += Math.max(...candidates.map(([, rendered]) => rendered.length));
                         break;
                     }
                 }
@@ -1231,6 +1297,10 @@
             }
 
             return width;
+        }
+
+        function refreshLcdTemplateWidths() {
+            document.querySelectorAll('.lcd-template-input').forEach(input => updateLcdTemplateInput(input, true));
         }
 
         function updateLcdTemplateInput(input, allowIncompleteWildcard = true) {
@@ -1331,6 +1401,21 @@
             setCard('servoControlCard', 'servoWarning', used.servo, ['servoSlider']);
             setCard('buzzerControlCard', 'buzzerWarning', used.buzzer, ['buzzerBtn']);
             setCard('lcdControlCard', 'lcdWarning', used.lcd, ['customLcdText1', 'customLcdText2', 'updateLcdBtn'], ['input[name="lcdMode"]']);
+
+            const potMappingCard = document.getElementById('potMappingCard');
+            const potMappingWarning = document.getElementById('potMappingWarning');
+            const potMappingTargets = { led: used.led, rgb: used.rgb, servo: used.servo };
+            let hasLockedMappingTarget = false;
+            document.querySelectorAll('input[name="potMapping"]').forEach(radio => {
+                const locked = Boolean(potMappingTargets[radio.value]);
+                radio.disabled = locked;
+                radio.setAttribute('aria-disabled', String(locked));
+                const note = radio.closest('label')?.querySelector('.pot-mapping-lock-note');
+                if (note) note.classList.toggle('hidden', !locked);
+                hasLockedMappingTarget ||= locked;
+            });
+            if (potMappingCard) potMappingCard.classList.toggle('automation-active', hasLockedMappingTarget);
+            if (potMappingWarning) potMappingWarning.classList.toggle('hidden', !hasLockedMappingTarget);
         }
 
         // Connection
@@ -1407,6 +1492,7 @@
                         document.getElementById('deviceFirmware').textContent = 'v' + v;
                         const cur = document.getElementById('currentVersion');
                         if (cur) cur.textContent = 'v' + v;
+                        checkFirmwareNotice();
                     } else if (msg.m === 'm') {
                         if (msg.d !== undefined) soilMoistureDry = Number(msg.d);
                         if (msg.w !== undefined) soilMoistureWet = Number(msg.w);
@@ -1439,6 +1525,10 @@
 
         function disconnectFromDevice() {
             isConnected = false;
+            currentFirmwareVersion = null;
+            firmwareNoticeCheckedVersion = null;
+            document.getElementById('firmwareNoticeBackdrop').classList.add('hidden');
+            document.getElementById('firmwareNoticeModal').classList.add('hidden');
             closeSoilCalModal();
             if (updateInterval) clearInterval(updateInterval);
             stopUpdateChecker();
@@ -1618,6 +1708,20 @@
             updateSoilCalStatus();
             document.getElementById('potValue').textContent = po;
             document.getElementById('distanceCm').textContent = di.toFixed(1);
+
+            lcdWildcardValues = Object.freeze({
+                '{temp}': te.toFixed(1),
+                '{humidity}': hu.toFixed(1),
+                '{ds18b20}': d8.toFixed(1),
+                '{light}': String(li),
+                '{gas}': String(ga),
+                '{soil}': String(sm),
+                '{distance}': di.toFixed(1),
+                '{pot}': String(po),
+                '{motion}': data.md ? 'YES' : 'NO',
+                '{button}': data.bp ? 'YES' : 'NO'
+            });
+            refreshLcdTemplateWidths();
 
             document.getElementById('motionStatus').textContent = (data.md || 0) ? '🚶 Motion' : '😴 None';
             document.getElementById('buttonStatus').textContent = (data.bp || 0) ? '✋ Pressed' : '👆 Released';
@@ -1860,9 +1964,42 @@
         let firmwareBinUrl = '';
         let updateCheckInterval = null;
         let currentFirmwareVersion = null;
+        let firmwareNoticeCheckedVersion = null;
+        const FIRMWARE_NOTICE_DISMISS_PREFIX = 'makerbuddy.firmwareNotice.dismissed.';
+        const FIRMWARE_NOTICE_SUPPRESSION_MS = 24 * 60 * 60 * 1000;
 
         document.getElementById('checkUpdateBtn').addEventListener('click', checkForUpdates);
         document.getElementById('installUpdateBtn').addEventListener('click', installUpdate);
+        document.getElementById('firmwareNoticeClose').addEventListener('click', dismissFirmwareNotice);
+        document.getElementById('firmwareNoticeAction').addEventListener('click', dismissFirmwareNotice);
+        document.getElementById('firmwareNoticeBackdrop').addEventListener('click', dismissFirmwareNotice);
+
+        function checkFirmwareNotice() {
+            if (!isConnected || !currentFirmwareVersion || currentFirmwareVersion === '--'
+                || firmwareNoticeCheckedVersion === currentFirmwareVersion) return;
+            firmwareNoticeCheckedVersion = currentFirmwareVersion;
+            fetch(FIRMWARE_JSON_URL, { headers: { Accept: 'application/json' } })
+                .then(response => response.json())
+                .then(release => {
+                    if (!release || !release.version || parseFloat(release.version) <= parseFloat(currentFirmwareVersion)) return;
+                    const key = FIRMWARE_NOTICE_DISMISS_PREFIX + release.version;
+                    const dismissedAt = Number(localStorage.getItem(key) || 0);
+                    if (dismissedAt && Date.now() - dismissedAt < FIRMWARE_NOTICE_SUPPRESSION_MS) return;
+                    document.getElementById('firmwareNoticeVersion').textContent = 'Version v' + release.version;
+                    document.getElementById('firmwareNoticeDate').textContent = 'Released ' + (release.date || 'N/A');
+                    document.getElementById('firmwareNoticeNotes').textContent = release.notes || release.releaseNotes || release.changelog || 'See Firmware Update in Settings to install this release.';
+                    document.getElementById('firmwareNoticeBackdrop').classList.remove('hidden');
+                    document.getElementById('firmwareNoticeModal').classList.remove('hidden');
+                })
+                .catch(() => { /* A failed background check must not interrupt device control. */ });
+        }
+
+        function dismissFirmwareNotice() {
+            const version = document.getElementById('firmwareNoticeVersion').textContent.replace(/^Version v/, '');
+            if (version) localStorage.setItem(FIRMWARE_NOTICE_DISMISS_PREFIX + version, String(Date.now()));
+            document.getElementById('firmwareNoticeBackdrop').classList.add('hidden');
+            document.getElementById('firmwareNoticeModal').classList.add('hidden');
+        }
 
         function checkForUpdates() {
             if (!isConnected) {
@@ -2195,6 +2332,16 @@
         const loopRangeOR = document.getElementById('loopRangeOR');
         const loopOperator2 = document.getElementById('loopOperator2');
         const loopThreshold2 = document.getElementById('loopThreshold2');
+        const loopUseSecondCondition = document.getElementById('loopUseSecondCondition');
+        const secondConditionSettings = document.getElementById('secondConditionSettings');
+        const loopConditionOperator = document.getElementById('loopConditionOperator');
+        const loopSensor2 = document.getElementById('loopSensor2');
+        const loopOperator3 = document.getElementById('loopOperator3');
+        const loopThreshold3 = document.getElementById('loopThreshold3');
+        const loopUseRange2 = document.getElementById('loopUseRange2');
+        const loopRangeOperator2 = document.getElementById('loopRangeOperator2');
+        const loopOperator4 = document.getElementById('loopOperator4');
+        const loopThreshold4 = document.getElementById('loopThreshold4');
 
         function setLoopRangeEnabled(enabled) {
             loopRangeSettings.classList.toggle('is-disabled', !enabled);
@@ -2230,6 +2377,19 @@
             setLoopRangeEnabled(e.target.checked);
         });
         setLoopRangeEnabled(false);
+
+        function setSecondRangeEnabled(enabled) {
+            [loopRangeOperator2, loopOperator4, loopThreshold4].forEach(el => el.disabled = !enabled);
+        }
+        function setSecondConditionEnabled(enabled) {
+            secondConditionSettings.classList.toggle('is-disabled', !enabled);
+            loopConditionOperator.disabled = !enabled;
+            [loopSensor2, loopOperator3, loopThreshold3, loopUseRange2].forEach(el => el.disabled = !enabled);
+            setSecondRangeEnabled(enabled && loopUseRange2.checked);
+        }
+        loopUseSecondCondition.addEventListener('change', e => setSecondConditionEnabled(e.target.checked));
+        loopUseRange2.addEventListener('change', e => setSecondRangeEnabled(e.target.checked));
+        setSecondConditionEnabled(false);
 
         // Timer Type Selection Handler
         const durationIntervalSettings = document.getElementById('durationIntervalSettings');
@@ -2445,6 +2605,8 @@
             // Uncheck range checkbox
             document.getElementById('loopUseRange').checked = false;
             setLoopRangeEnabled(false);
+            loopUseSecondCondition.checked = false;
+            setSecondConditionEnabled(false);
 
             // Reset to default loop mode (none)
             document.getElementById('loopNone').checked = true;
@@ -2532,6 +2694,17 @@
                     data.loopOperator2 = formData.get('loopOperator2');
                     data.loopThreshold2 = formData.get('loopThreshold2');
                 }
+                data.loopUseSecondCondition = formData.has('loopUseSecondCondition') ? 'true' : 'false';
+                if (formData.has('loopUseSecondCondition')) {
+                    data.loopSensor2 = formData.get('loopSensor2');
+                    data.loopOperator3 = formData.get('loopOperator3');
+                    data.loopThreshold3 = formData.get('loopThreshold3');
+                    data.loopUseRange2 = formData.has('loopUseRange2') ? 'true' : 'false';
+                    data.loopRangeOperator2 = formData.get('loopRangeOperator2') || 'AND';
+                    data.loopOperator4 = formData.get('loopOperator4') || '>';
+                    data.loopThreshold4 = formData.get('loopThreshold4') || '30';
+                    data.loopConditionOperator = formData.get('loopConditionOperator') || 'AND';
+                }
             }
 
             // Add steps
@@ -2571,6 +2744,8 @@
             // Uncheck range checkbox
             document.getElementById('loopUseRange').checked = false;
             setLoopRangeEnabled(false);
+            loopUseSecondCondition.checked = false;
+            setSecondConditionEnabled(false);
 
             // Reset to default loop mode (none)
             document.getElementById('loopNone').checked = true;
@@ -2605,6 +2780,15 @@
                 ro: data.loopRangeOperator || 'AND',
                 o2: data.loopOperator2 || '>',
                 t2: Number(data.loopThreshold2 || 0),
+                c2: data.loopUseSecondCondition === 'true' ? 1 : 0,
+                lr2: data.loopSensor2 || 'temperature',
+                lo2: data.loopOperator3 || '>',
+                lt2: Number(data.loopThreshold3 || 0),
+                rg2: data.loopUseRange2 === 'true' ? 1 : 0,
+                ro2: data.loopRangeOperator2 || 'AND',
+                o3: data.loopOperator4 || '>',
+                t3: Number(data.loopThreshold4 || 0),
+                co: data.loopConditionOperator || 'AND',
                 as: data.autostart === 'true' ? 1 : 0,
                 st: []
             };
@@ -2691,6 +2875,16 @@
                     document.getElementById('loopUseRange').checked = false;
                     setLoopRangeEnabled(false);
                 }
+                loopUseSecondCondition.checked = Boolean(seq.c2);
+                loopConditionOperator.value = seq.co || 'AND';
+                loopSensor2.value = seq.lr2 || 'temperature';
+                loopOperator3.value = seq.lo2 || '>';
+                loopThreshold3.value = seq.lt2 ?? 25;
+                loopUseRange2.checked = Boolean(seq.rg2);
+                loopRangeOperator2.value = seq.ro2 || 'AND';
+                loopOperator4.value = seq.o3 || '>';
+                loopThreshold4.value = seq.t3 ?? 30;
+                setSecondConditionEnabled(Boolean(seq.c2));
             }
 
             // Clear and populate steps

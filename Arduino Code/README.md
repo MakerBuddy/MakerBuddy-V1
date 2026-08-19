@@ -1,6 +1,6 @@
 # MakerBuddy Arduino Code
 
-MakerBuddy ESP32 firmware v2.1 with WebSocket server, sensor management, and sequence-based automation engine.
+MakerBuddy ESP32 firmware v2.3 with WebSocket server, sensor management, and sequence-based automation engine.
 
 ## 📋 Overview
 

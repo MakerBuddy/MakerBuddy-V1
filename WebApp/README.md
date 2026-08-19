@@ -1,6 +1,21 @@
 # MakerBuddy Web Dashboard
 
-A modern, responsive WebSocket dashboard for MakerBuddy. Current WebApp version: **1.9**.
+A modern, responsive WebSocket dashboard for MakerBuddy. Current WebApp version: **2.3**.
+
+## What's new in v2.2
+
+- Automatically checks the official firmware feed after connecting and shows a release notice when newer firmware is available.
+- Dismissing a release notice suppresses that same version for 24 hours.
+
+## What's new in v2.1
+
+- Rule Engine locks now disable the matching LED, RGB LED, and Servo options in Potentiometer Mapping, with a visible explanation for each unavailable target.
+
+## What's new in v2.0
+
+- Applied the MakerBuddy violet-and-amber brand palette to light and dark themes.
+- Amber now carries primary actions and active states with accessible near-black labels.
+- Warning states use yellow, and interactive controls have visible amber focus rings.
 
 ## 🆕 What's New in v1.9
 

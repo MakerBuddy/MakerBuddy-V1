@@ -3,8 +3,8 @@
  *
  * Website: https://makerbuddy.cc
  * Email: info@makerbuddy.cc
- * Version: 2.1
- * Release Date: 16 August 2026
+ * Version: 2.3
+ * Release Date: 19 August 2026
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,7 +43,7 @@
 #include "esp_wifi.h"
 
 // Firmware Version
-#define FIRMWARE_VERSION "2.1"
+#define FIRMWARE_VERSION "2.3"
 
 // WiFi credentials - will be overridden by saved preferences
 const char *ssid = "";
@@ -468,6 +468,9 @@ bool evaluateOperator(float value, SeqOp op, float threshold);
 bool evaluateGenericCondition(SeqSensor sensor, SeqOp op1, float thresh1,
                               bool useRange, SeqRangeOp rangeOp, SeqOp op2,
                               float thresh2);
+void loadSequenceConditionExtension(Sequence &seq, int index);
+void saveSequenceConditionExtension(Sequence &seq, int index);
+void removeSequenceConditionExtension(int index);
 float getSensorValueById(SeqSensor sensor);
 String getSequencesJSON();
 bool getDebouncedCondition(Sequence &seq, bool rawCondition);
@@ -830,10 +833,40 @@ String decodeLcdTemplate(String text) {
 size_t lcdTemplateDisplayWidth(String text) {
   text = decodeLcdTemplate(text);
   for (size_t i = 0; i < LCD_WILDCARD_COUNT; i++) {
-    String placeholder;
-    for (uint8_t column = 0; column < LCD_WILDCARD_WIDTHS[i]; column++)
-      placeholder += '0';
-    text.replace(LCD_WILDCARD_TOKENS[i], placeholder);
+    String rendered;
+    switch (i) {
+    case 0:
+      rendered = String(sensorData.temperature, 1);
+      break;
+    case 1:
+      rendered = String(sensorData.humidity, 1);
+      break;
+    case 2:
+      rendered = String(sensorData.ds18b20Temp, 1);
+      break;
+    case 3:
+      rendered = String(sensorData.lightLevel);
+      break;
+    case 4:
+      rendered = String(sensorData.gasLevel);
+      break;
+    case 5:
+      rendered = String(sensorData.soilMoisture);
+      break;
+    case 6:
+      rendered = String(sensorData.distance, 1);
+      break;
+    case 7:
+      rendered = String(sensorData.potValue);
+      break;
+    case 8:
+      rendered = sensorData.motionDetected ? "YES" : "NO";
+      break;
+    case 9:
+      rendered = sensorData.buttonPressed ? "YES" : "NO";
+      break;
+    }
+    text.replace(LCD_WILDCARD_TOKENS[i], rendered);
   }
   return text.length();
 }
@@ -1170,6 +1203,20 @@ void setupWebServer() {
               seqOpToString((SeqOp)sequences[i].loopOperator2);
           seqObj["loopThreshold2"] = sequences[i].loopThreshold2;
         }
+        seqObj["loopUseSecondCondition"] = sequences[i].loopUseSecondCondition;
+        seqObj["loopSensor2"] =
+            seqSensorToString((SeqSensor)sequences[i].loopSensor2);
+        seqObj["loopOperator3"] =
+            seqOpToString((SeqOp)sequences[i].loopOperator3);
+        seqObj["loopThreshold3"] = sequences[i].loopThreshold3;
+        seqObj["loopUseRange2"] = sequences[i].loopUseRange2;
+        seqObj["loopRangeOperator2"] =
+            seqRangeOpToString((SeqRangeOp)sequences[i].loopRangeOperator2);
+        seqObj["loopOperator4"] =
+            seqOpToString((SeqOp)sequences[i].loopOperator4);
+        seqObj["loopThreshold4"] = sequences[i].loopThreshold4;
+        seqObj["loopConditionOperator"] =
+            seqRangeOpToString((SeqRangeOp)sequences[i].loopConditionOperator);
       }
 
       int safeStepCount = sequences[i].stepCount;
@@ -1267,6 +1314,40 @@ void setupWebServer() {
             request->hasParam("loopThreshold2", true)
                 ? request->getParam("loopThreshold2", true)->value().toFloat()
                 : 0.0;
+        newSeq.loopUseSecondCondition =
+            request->hasParam("loopUseSecondCondition", true) &&
+            request->getParam("loopUseSecondCondition", true)->value() == "true";
+        newSeq.loopSensor2 = (uint8_t)seqSensorFromString(
+            request->hasParam("loopSensor2", true)
+                ? request->getParam("loopSensor2", true)->value()
+                : "temperature");
+        newSeq.loopOperator3 = (uint8_t)seqOpFromString(
+            request->hasParam("loopOperator3", true)
+                ? request->getParam("loopOperator3", true)->value()
+                : ">");
+        newSeq.loopThreshold3 =
+            request->hasParam("loopThreshold3", true)
+                ? request->getParam("loopThreshold3", true)->value().toFloat()
+                : 0.0;
+        newSeq.loopUseRange2 =
+            request->hasParam("loopUseRange2", true) &&
+            request->getParam("loopUseRange2", true)->value() == "true";
+        newSeq.loopRangeOperator2 = (uint8_t)seqRangeOpFromString(
+            request->hasParam("loopRangeOperator2", true)
+                ? request->getParam("loopRangeOperator2", true)->value()
+                : "AND");
+        newSeq.loopOperator4 = (uint8_t)seqOpFromString(
+            request->hasParam("loopOperator4", true)
+                ? request->getParam("loopOperator4", true)->value()
+                : ">");
+        newSeq.loopThreshold4 =
+            request->hasParam("loopThreshold4", true)
+                ? request->getParam("loopThreshold4", true)->value().toFloat()
+                : 0.0;
+        newSeq.loopConditionOperator = (uint8_t)seqRangeOpFromString(
+            request->hasParam("loopConditionOperator", true)
+                ? request->getParam("loopConditionOperator", true)->value()
+                : "AND");
 
         newSeq.currentStep = 0;
         newSeq.isRunning = false;
@@ -1382,8 +1463,19 @@ void setupWebServer() {
                                   preferences.getBool(nextKey.c_str(), false));
             else
               preferences.remove(("seqms_" + String(i)).c_str());
+
+            String nextConditionKey = "seqc_" + String(i + 1);
+            String currentConditionKey = "seqc_" + String(i);
+            SequenceConditionExtension shiftedExtension;
+            if (preferences.getBytes(nextConditionKey.c_str(), &shiftedExtension,
+                                     sizeof(shiftedExtension)) == sizeof(shiftedExtension))
+              preferences.putBytes(currentConditionKey.c_str(), &shiftedExtension,
+                                   sizeof(shiftedExtension));
+            else
+              preferences.remove(currentConditionKey.c_str());
           }
           preferences.remove(("seqms_" + String(sequenceCount - 1)).c_str());
+          removeSequenceConditionExtension(sequenceCount - 1);
           sequenceCount--;
           // Delete shifts all indices from 'index' onward — mark them dirty
           for (int j = index; j < sequenceCount; j++)
@@ -1589,7 +1681,7 @@ void wsMaybeBroadcastSensors() {
 }
 
 String getSequencesJSONCompact() {
-  StaticJsonDocument<3072> doc;
+  StaticJsonDocument<4096> doc;
   doc["m"] = "q";
   JsonArray arr = doc.createNestedArray("sq");
 
@@ -1609,6 +1701,17 @@ String getSequencesJSONCompact() {
     seq["ro"] = seqRangeOpToString((SeqRangeOp)sequences[i].loopRangeOperator);
     seq["o2"] = seqOpToString((SeqOp)sequences[i].loopOperator2);
     seq["t2"] = sequences[i].loopThreshold2;
+    if (sequences[i].loopUseSecondCondition) {
+      seq["c2"] = 1;
+      seq["lr2"] = seqSensorToString((SeqSensor)sequences[i].loopSensor2);
+      seq["lo2"] = seqOpToString((SeqOp)sequences[i].loopOperator3);
+      seq["lt2"] = sequences[i].loopThreshold3;
+      seq["rg2"] = sequences[i].loopUseRange2 ? 1 : 0;
+      seq["ro2"] = seqRangeOpToString((SeqRangeOp)sequences[i].loopRangeOperator2);
+      seq["o3"] = seqOpToString((SeqOp)sequences[i].loopOperator4);
+      seq["t3"] = sequences[i].loopThreshold4;
+      seq["co"] = seqRangeOpToString((SeqRangeOp)sequences[i].loopConditionOperator);
+    }
     seq["ms"] = sequences[i].manuallyStopped ? 1 : 0;
     seq["rn"] = sequences[i].isRunning ? 1 : 0;
     seq["as"] = sequences[i].autostart ? 1 : 0;
@@ -1845,6 +1948,20 @@ void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client,
         newSeq.loopOperator2 =
             (uint8_t)seqOpFromString(String((const char *)(s["o2"] | ">")));
         newSeq.loopThreshold2 = s["t2"] | 0.0;
+        newSeq.loopUseSecondCondition = (s["c2"] | 0) == 1;
+        newSeq.loopSensor2 = (uint8_t)seqSensorFromString(
+            String((const char *)(s["lr2"] | "temperature")));
+        newSeq.loopOperator3 =
+            (uint8_t)seqOpFromString(String((const char *)(s["lo2"] | ">")));
+        newSeq.loopThreshold3 = s["lt2"] | 0.0;
+        newSeq.loopUseRange2 = (s["rg2"] | 0) == 1;
+        newSeq.loopRangeOperator2 = (uint8_t)seqRangeOpFromString(
+            String((const char *)(s["ro2"] | "AND")));
+        newSeq.loopOperator4 =
+            (uint8_t)seqOpFromString(String((const char *)(s["o3"] | ">")));
+        newSeq.loopThreshold4 = s["t3"] | 0.0;
+        newSeq.loopConditionOperator = (uint8_t)seqRangeOpFromString(
+            String((const char *)(s["co"] | "AND")));
 
         newSeq.currentStep = 0;
         newSeq.isRunning = false;
@@ -2598,6 +2715,54 @@ void updateLCD() {
   }
 }
 
+void saveSequenceConditionExtension(Sequence &seq, int index) {
+  SequenceConditionExtension ext = {
+      1,
+      (uint8_t)(seq.loopUseSecondCondition ? 1 : 0),
+      seq.loopSensor2,
+      seq.loopOperator3,
+      seq.loopThreshold3,
+      (uint8_t)(seq.loopUseRange2 ? 1 : 0),
+      seq.loopRangeOperator2,
+      seq.loopOperator4,
+      seq.loopThreshold4,
+      seq.loopConditionOperator};
+  String key = "seqc_" + String(index);
+  preferences.putBytes(key.c_str(), &ext, sizeof(ext));
+}
+
+void removeSequenceConditionExtension(int index) {
+  String key = "seqc_" + String(index);
+  preferences.remove(key.c_str());
+}
+
+void loadSequenceConditionExtension(Sequence &seq, int index) {
+  seq.loopUseSecondCondition = false;
+  seq.loopSensor2 = SS_TEMPERATURE;
+  seq.loopOperator3 = SOP_GT;
+  seq.loopThreshold3 = 0.0f;
+  seq.loopUseRange2 = false;
+  seq.loopRangeOperator2 = SROP_AND;
+  seq.loopOperator4 = SOP_GT;
+  seq.loopThreshold4 = 0.0f;
+  seq.loopConditionOperator = SROP_AND;
+
+  SequenceConditionExtension ext;
+  String key = "seqc_" + String(index);
+  if (preferences.getBytes(key.c_str(), &ext, sizeof(ext)) == sizeof(ext) &&
+      ext.version == 1) {
+    seq.loopUseSecondCondition = ext.useSecondCondition != 0;
+    seq.loopSensor2 = ext.sensor2;
+    seq.loopOperator3 = ext.operator3;
+    seq.loopThreshold3 = ext.threshold3;
+    seq.loopUseRange2 = ext.useRange2 != 0;
+    seq.loopRangeOperator2 = ext.rangeOperator2;
+    seq.loopOperator4 = ext.operator4;
+    seq.loopThreshold4 = ext.threshold4;
+    seq.loopConditionOperator = ext.conditionOperator;
+  }
+}
+
 void saveSequences() {
   // Only write what actually changed — avoids NVS fragmentation that occurs
   // when all 10 slots are pre-deleted and rewritten on every single save.
@@ -2622,6 +2787,7 @@ void saveSequences() {
         preferences.remove(key.c_str());
         Serial.printf("[NVS SAVE] Removed %s\n", key.c_str());
       }
+      removeSequenceConditionExtension(i);
     }
   }
 
@@ -2666,6 +2832,7 @@ void saveSequences() {
       Serial.printf("[NVS SAVE OK] %s: '%s' (%d steps, %u bytes)\n",
                     key.c_str(), seq.name, seq.stepCount, (unsigned)compactSize);
     }
+    saveSequenceConditionExtension(seq, i);
   }
 }
 
@@ -2759,6 +2926,7 @@ void loadSequences() {
               preferences.getBool(msKey.c_str(), false);
         }
       }
+      loadSequenceConditionExtension(sequences[sequenceCount], sequenceCount);
 
       sequenceCount++;
     }
@@ -2791,6 +2959,7 @@ void loadSequences() {
   for (int i = 0; i < MAX_SEQUENCES; i++) {
     String key = "seq_" + String(i);
     String msKey = "seqms_" + String(i);
+    String conditionKey = "seqc_" + String(i);
     if (i >= sequenceCount) {
       if (preferences.isKey(key.c_str())) {
         Serial.printf("[NVS CLEANUP] Removing orphaned %s\n", key.c_str());
@@ -2799,6 +2968,10 @@ void loadSequences() {
       }
       if (preferences.isKey(msKey.c_str())) {
         preferences.remove(msKey.c_str());
+        cleanedUp = true;
+      }
+      if (preferences.isKey(conditionKey.c_str())) {
+        preferences.remove(conditionKey.c_str());
         cleanedUp = true;
       }
     }
@@ -2824,10 +2997,20 @@ void loadSequences() {
 // Sequence loop condition - uses unified condition evaluation engine (same as
 // rule engine)
 bool evaluateLoopCondition(Sequence &seq) {
-  return evaluateGenericCondition(
+  bool first = evaluateGenericCondition(
       (SeqSensor)seq.loopSensor, (SeqOp)seq.loopOperator, seq.loopThreshold,
       seq.loopUseRange, (SeqRangeOp)seq.loopRangeOperator,
       (SeqOp)seq.loopOperator2, seq.loopThreshold2);
+  if (!seq.loopUseSecondCondition)
+    return first;
+
+  bool second = evaluateGenericCondition(
+      (SeqSensor)seq.loopSensor2, (SeqOp)seq.loopOperator3,
+      seq.loopThreshold3, seq.loopUseRange2,
+      (SeqRangeOp)seq.loopRangeOperator2, (SeqOp)seq.loopOperator4,
+      seq.loopThreshold4);
+  return seq.loopConditionOperator == SROP_AND ? (first && second)
+                                               : (first || second);
 }
 
 bool getDebouncedCondition(Sequence &seq, bool rawCondition) {
