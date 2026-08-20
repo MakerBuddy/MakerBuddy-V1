@@ -1,6 +1,12 @@
 # MakerBuddy Web Dashboard
 
-A modern, responsive WebSocket dashboard for MakerBuddy. Current WebApp version: **2.3**.
+A modern, responsive WebSocket dashboard for MakerBuddy. Current WebApp version: **2.4**.
+
+## What's new in v2.4
+
+- The optional second sensor condition stays hidden until it is enabled, keeping simple rules compact.
+- Two-condition AND/OR logic now uses plain-language radio choices instead of a dropdown.
+- The second sensor and its optional range follow the same responsive row layout as the first sensor.
 
 ## What's new in v2.2
 
@@ -312,7 +318,12 @@ Stay connected with MakerBuddy:
 
 ## 📝 Version History
 
-### v1.9 (Current)
+### v2.4 (Current)
+
+- Progressive disclosure and responsive layout added to the two-sensor condition editor.
+- AND/OR selectors use accessible radio groups with plain-language explanations.
+
+### v1.9
 
 - MakerBuddy IoT Kit IP address added to the Settings device-information card.
 - LCD inputs validate wildcard-expanded display width and show live column counts.

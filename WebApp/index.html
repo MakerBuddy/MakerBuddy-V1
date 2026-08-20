@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <!--
-  MakerBuddy V2.3 - Web Dashboard
+  MakerBuddy V2.4 - Web Dashboard
 
   Copyright (C) 2024 Muhammad Afzal
   Website: https://makerbuddy.cc
   Email: info@makerbuddy.cc
-  Version: 2.3
-  Release Date: 19 August 2026
+  Version: 2.4
+  Release Date: 20 August 2026
  
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="application-version" content="2.2">
+    <meta name="application-version" content="2.4">
     <title>MakerBuddy Web App Dashboard</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
@@ -653,21 +653,31 @@
                                 </div>
                                 </div>
 
-                                <div class="loop-condition-row" style="margin-top: 12px; align-items: end;">
-                                    <label class="loop-condition-toggle" style="display: flex; align-items: center; cursor: pointer;">
-                                        <input type="checkbox" name="loopUseSecondCondition" id="loopUseSecondCondition">
-                                        <span style="font-size: 13px; color: var(--text-primary);">Use second sensor condition</span>
+                                <div class="second-condition-toggle-row">
+                                    <label class="loop-condition-toggle second-condition-toggle">
+                                        <input type="checkbox" name="loopUseSecondCondition" id="loopUseSecondCondition"
+                                            aria-controls="secondConditionSettings" aria-expanded="false">
+                                        <span><strong>Add a second sensor</strong><small>Optional — make a smarter rule using two sensors</small></span>
                                     </label>
-                                    <div class="loop-condition-field">
-                                        <label style="font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; display: block;">Conditions logic</label>
-                                        <select name="loopConditionOperator" id="loopConditionOperator" disabled>
-                                            <option value="AND">AND</option>
-                                            <option value="OR">OR</option>
-                                        </select>
-                                    </div>
                                 </div>
-                                <div id="secondConditionSettings" class="range-settings is-disabled" style="margin-top: 10px; background: var(--bg-primary); padding: 12px; border-radius: 8px; border: 2px solid var(--border-color);">
-                                    <div class="loop-condition-row">
+                                <section id="secondConditionSettings" class="second-condition-settings" aria-label="Second sensor condition" hidden>
+                                    <fieldset class="condition-logic-fieldset">
+                                        <legend>How should the two sensor conditions work together?</legend>
+                                        <div class="loop-range-logic condition-logic-options">
+                                            <label class="logic-choice">
+                                                <input type="radio" name="loopConditionOperator" value="AND"
+                                                    id="loopConditionAND" checked disabled>
+                                                <span><strong>AND</strong> Both must be true</span>
+                                            </label>
+                                            <label class="logic-choice">
+                                                <input type="radio" name="loopConditionOperator" value="OR"
+                                                    id="loopConditionOR" disabled>
+                                                <span><strong>OR</strong> Either can be true</span>
+                                            </label>
+                                        </div>
+                                    </fieldset>
+
+                                    <div class="loop-condition-row loop-condition-row--main">
                                         <div class="loop-condition-field">
                                             <label style="font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; display: block;">Second sensor</label>
                                             <select name="loopSensor2" id="loopSensor2" disabled>
@@ -694,19 +704,21 @@
                                             <input type="number" name="loopThreshold3" id="loopThreshold3" step="0.1" value="25" disabled>
                                         </div>
                                     </div>
-                                    <div class="loop-condition-row" style="margin-top: 10px;">
-                                        <label class="loop-condition-toggle" style="display: flex; align-items: center; cursor: pointer;"><input type="checkbox" name="loopUseRange2" id="loopUseRange2" disabled><span style="font-size: 13px; color: var(--text-primary);">Use second sensor range</span></label>
-                                        <div class="loop-condition-field"><label style="font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; display: block;">Range logic</label><select name="loopRangeOperator2" id="loopRangeOperator2" disabled><option value="AND">AND</option><option value="OR">OR</option></select></div>
-                                        <div class="loop-condition-field"><label style="font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; display: block;">Operator 2</label><select name="loopOperator4" id="loopOperator4" disabled><option value=">">Greater than (&gt;)</option><option value="&lt;">Less than (&lt;)</option><option value="&gt;=">Greater or equal (&gt;=)</option><option value="&lt;=">Less or equal (&lt;=)</option><option value="==">Equal to (==)</option></select></div>
-                                        <div class="loop-condition-field"><label style="font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; display: block;">Threshold 2</label><input type="number" name="loopThreshold4" id="loopThreshold4" step="0.1" value="30" disabled></div>
+                                    <div id="loopRangeSettings2" class="range-settings is-disabled second-range-settings">
+                                        <div class="loop-condition-row loop-condition-row--range">
+                                            <label class="loop-condition-toggle" style="display: flex; align-items: center; cursor: pointer;"><input type="checkbox" name="loopUseRange2" id="loopUseRange2" disabled><span style="font-size: 13px; color: var(--text-primary);">Use second sensor range</span></label>
+                                            <div class="loop-condition-field"><label style="font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; display: block;">Range logic</label><div class="loop-range-logic"><label><input type="radio" name="loopRangeOperator2" value="AND" id="loopRange2AND" checked disabled><span>AND</span></label><label><input type="radio" name="loopRangeOperator2" value="OR" id="loopRange2OR" disabled><span>OR</span></label></div></div>
+                                            <div class="loop-condition-field"><label style="font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; display: block;">Operator 2</label><select name="loopOperator4" id="loopOperator4" disabled><option value=">">Greater than (&gt;)</option><option value="&lt;">Less than (&lt;)</option><option value="&gt;=">Greater or equal (&gt;=)</option><option value="&lt;=">Less or equal (&lt;=)</option><option value="==">Equal to (==)</option></select></div>
+                                            <div class="loop-condition-field"><label style="font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; display: block;">Threshold 2</label><input type="number" name="loopThreshold4" id="loopThreshold4" step="0.1" value="30" disabled></div>
+                                        </div>
                                     </div>
-                                </div>
+                                </section>
 
                                 <div
                                 style="margin-top: 12px; padding: 10px; background: rgba(99, 102, 241, 0.1); border-radius: 8px; border-left: 3px solid var(--primary-color);">
                                 <p style="font-size: 12px; color: var(--text-secondary); margin: 0;">
-                                    <strong>Note:</strong> Rule will continue looping while this condition is met. When
-                                    condition becomes false, loop will stop.
+                                    <strong>Note:</strong> The rule keeps looping while the selected condition or
+                                    conditions are true. It stops when they become false.
                                 </p>
                             </div>
                         </div>
@@ -2334,12 +2346,15 @@
         const loopThreshold2 = document.getElementById('loopThreshold2');
         const loopUseSecondCondition = document.getElementById('loopUseSecondCondition');
         const secondConditionSettings = document.getElementById('secondConditionSettings');
-        const loopConditionOperator = document.getElementById('loopConditionOperator');
+        const loopConditionAND = document.getElementById('loopConditionAND');
+        const loopConditionOR = document.getElementById('loopConditionOR');
         const loopSensor2 = document.getElementById('loopSensor2');
         const loopOperator3 = document.getElementById('loopOperator3');
         const loopThreshold3 = document.getElementById('loopThreshold3');
         const loopUseRange2 = document.getElementById('loopUseRange2');
-        const loopRangeOperator2 = document.getElementById('loopRangeOperator2');
+        const loopRangeSettings2 = document.getElementById('loopRangeSettings2');
+        const loopRange2AND = document.getElementById('loopRange2AND');
+        const loopRange2OR = document.getElementById('loopRange2OR');
         const loopOperator4 = document.getElementById('loopOperator4');
         const loopThreshold4 = document.getElementById('loopThreshold4');
 
@@ -2379,11 +2394,13 @@
         setLoopRangeEnabled(false);
 
         function setSecondRangeEnabled(enabled) {
-            [loopRangeOperator2, loopOperator4, loopThreshold4].forEach(el => el.disabled = !enabled);
+            loopRangeSettings2.classList.toggle('is-disabled', !enabled);
+            [loopRange2AND, loopRange2OR, loopOperator4, loopThreshold4].forEach(el => el.disabled = !enabled);
         }
         function setSecondConditionEnabled(enabled) {
-            secondConditionSettings.classList.toggle('is-disabled', !enabled);
-            loopConditionOperator.disabled = !enabled;
+            secondConditionSettings.hidden = !enabled;
+            loopUseSecondCondition.setAttribute('aria-expanded', String(enabled));
+            [loopConditionAND, loopConditionOR].forEach(el => el.disabled = !enabled);
             [loopSensor2, loopOperator3, loopThreshold3, loopUseRange2].forEach(el => el.disabled = !enabled);
             setSecondRangeEnabled(enabled && loopUseRange2.checked);
         }
@@ -2876,12 +2893,12 @@
                     setLoopRangeEnabled(false);
                 }
                 loopUseSecondCondition.checked = Boolean(seq.c2);
-                loopConditionOperator.value = seq.co || 'AND';
+                (document.querySelector(`input[name="loopConditionOperator"][value="${seq.co || 'AND'}"]`) || loopConditionAND).checked = true;
                 loopSensor2.value = seq.lr2 || 'temperature';
                 loopOperator3.value = seq.lo2 || '>';
                 loopThreshold3.value = seq.lt2 ?? 25;
                 loopUseRange2.checked = Boolean(seq.rg2);
-                loopRangeOperator2.value = seq.ro2 || 'AND';
+                (document.querySelector(`input[name="loopRangeOperator2"][value="${seq.ro2 || 'AND'}"]`) || loopRange2AND).checked = true;
                 loopOperator4.value = seq.o3 || '>';
                 loopThreshold4.value = seq.t3 ?? 30;
                 setSecondConditionEnabled(Boolean(seq.c2));

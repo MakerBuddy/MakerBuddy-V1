@@ -8,7 +8,7 @@ use real-time WebSocket communication for monitoring and control. The
 sequence-based automation engine supports four loop modes: None, Forever,
 Timer (interval-only), and Condition.
 
-Current releases (19 August 2026): **firmware 2.3** and **WebApp 2.3**.
+Current releases (20 August 2026): **firmware 2.3** and **WebApp 2.4**.
 
 This public repository contains the open-source Arduino firmware, WebApp, and
 PCB design files. Other MakerBuddy clients are maintained separately and are
@@ -119,6 +119,14 @@ We welcome contributions. Feel free to report bugs, suggest features, submit
 pull requests, and share projects built with MakerBuddy.
 
 ## 📝 Release Notes
+
+### 20 August 2026
+
+**WebApp 2.4**
+
+- Keeps the optional second sensor editor hidden until its checkbox is enabled.
+- Uses explanatory AND/OR radio choices for two-condition and second-range logic.
+- Aligns both sensor condition rows and their optional ranges across desktop and mobile layouts.
 
 ### 19 August 2026
 
