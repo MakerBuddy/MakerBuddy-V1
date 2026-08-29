@@ -1,6 +1,11 @@
 # MakerBuddy Web Dashboard
 
-A modern, responsive WebSocket dashboard for MakerBuddy. Current WebApp version: **2.4**.
+A modern, responsive WebSocket dashboard for MakerBuddy. Current WebApp version: **2.5**.
+
+## What's new in v2.5
+
+- Sensor and control icon tiles now use the same theme-aware violet-soft surface as the mobile app.
+- Dashboard settings use the aligned violet-soft icon background as their default accent color.
 
 ## What's new in v2.4
 
@@ -318,7 +323,11 @@ Stay connected with MakerBuddy:
 
 ## 📝 Version History
 
-### v2.4 (Current)
+### v2.5 (Current)
+
+- Sensor and control icon backgrounds aligned with the native mobile theme.
+
+### v2.4
 
 - Progressive disclosure and responsive layout added to the two-sensor condition editor.
 - AND/OR selectors use accessible radio groups with plain-language explanations.

@@ -1,11 +1,11 @@
 /*
- * MakerBuddy V2.4 - Web Dashboard Styles
+ * MakerBuddy V2.5 - Web Dashboard Styles
  *
  * Copyright (C) 2024 Muhammad Afzal
  * Website: https://makerbuddy.cc
  * Email: info@makerbuddy.cc
- * Version: 2.4
- * Release Date: 20 August 2026
+ * Version: 2.5
+ * Release Date: 28 August 2026
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
     --primary-color: #561f7a;
     --primary-dark: #3b1258;
     --primary-light: #8b5aa8;
+    --primary-soft: #f1e8f6;
     --accent-color: #f4971e;
     --accent-hover: #d87a0b;
     --accent-fg: #1a0825;
@@ -48,6 +49,7 @@
     --primary-color: #d6a7e8;
     --primary-dark: #f4971e;
     --primary-light: #e4c5f0;
+    --primary-soft: #3a2050;
     --accent-color: #f4971e;
     --accent-hover: #ffad3f;
     --accent-fg: #1a0825;
@@ -639,13 +641,13 @@ body {
     width: 60px;
     height: 60px;
     border-radius: 16px;
-    background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+    background: var(--primary-soft);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 28px;
     margin-bottom: 16px;
-    box-shadow: 0 8px 16px rgba(37, 99, 235, 0.3);
+    box-shadow: 0 8px 16px rgba(86, 31, 122, 0.18);
 }
 
 .sensor-label {
@@ -702,12 +704,12 @@ body {
     width: 48px;
     height: 48px;
     border-radius: 14px;
-    background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+    background: var(--primary-soft);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 24px;
-    box-shadow: 0 6px 12px rgba(37, 99, 235, 0.25);
+    box-shadow: 0 6px 12px rgba(86, 31, 122, 0.16);
 }
 
 .control-title {
