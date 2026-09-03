@@ -1,11 +1,11 @@
 /*
- * MakerBuddy V2.5 - Web Dashboard Styles
+ * MakerBuddy V2.6 - Web Dashboard Styles
  *
  * Copyright (C) 2024 Muhammad Afzal
  * Website: https://makerbuddy.cc
  * Email: info@makerbuddy.cc
- * Version: 2.5
- * Release Date: 28 August 2026
+ * Version: 2.6
+ * Release Date: 1 September 2026
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -1498,13 +1498,16 @@ tbody tr:hover {
 .pot-mapping-lock-note { color: var(--warning-color); font-size: 11px; font-weight: 700; }
 label:has(input[name="potMapping"]:disabled) { opacity: 0.58; cursor: not-allowed; }
 
-/* ─── Chrome Extension Redirect Modal ─── */
+/* ─── Browser Extension Redirect Modals ─── */
 .chrome-modal-backdrop,
-.chrome-modal {
+.firefox-modal-backdrop,
+.chrome-modal,
+.firefox-modal {
     display: none;
 }
 
-.chrome-modal-backdrop.active {
+.chrome-modal-backdrop.active,
+.firefox-modal-backdrop.active {
     display: block;
     position: fixed;
     inset: 0;
@@ -1514,7 +1517,8 @@ label:has(input[name="potMapping"]:disabled) { opacity: 0.58; cursor: not-allowe
     z-index: 9998;
 }
 
-.chrome-modal.active {
+.chrome-modal.active,
+.firefox-modal.active {
     display: flex;
     flex-direction: column;
     align-items: center;

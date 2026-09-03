@@ -1,6 +1,10 @@
 # MakerBuddy Web Dashboard
 
-A modern, responsive WebSocket dashboard for MakerBuddy. Current WebApp version: **2.5**.
+A modern, responsive WebSocket dashboard for MakerBuddy. Current WebApp version: **2.6**.
+
+## What's new in v2.6
+
+- Detects Firefox and directs users to the official [MakerBuddy Firefox Add-on](https://addons.mozilla.org/en-US/firefox/addon/makerbuddy-iot-controller/), matching the existing Chrome extension prompt.
 
 ## What's new in v2.5
 
@@ -284,7 +288,7 @@ All settings are stored in `localStorage` under key `dashboardSettings`:
 ## 🌐 Browser Compatibility
 
 Tested and working on:
-- ✅ Firefox (v88+)
+- ⚠️ Firefox — requires [MakerBuddy Firefox Add-on](https://addons.mozilla.org/en-US/firefox/addon/makerbuddy-iot-controller/) for full functionality
 - ✅ Safari (v14+)
 - ✅ Edge (v90+)
 - ✅ Opera (v76+)
@@ -323,7 +327,11 @@ Stay connected with MakerBuddy:
 
 ## 📝 Version History
 
-### v2.5 (Current)
+### v2.6 (Current)
+
+- Detects Firefox and shows a non-dismissible prompt for the official MakerBuddy Firefox Add-on.
+
+### v2.5
 
 - Sensor and control icon backgrounds aligned with the native mobile theme.
 

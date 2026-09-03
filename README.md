@@ -8,7 +8,7 @@ use real-time WebSocket communication for monitoring and control. The
 sequence-based automation engine supports four loop modes: None, Forever,
 Timer (interval-only), and Condition.
 
-Current releases (28 August 2026): **firmware 2.3** and **WebApp 2.5**.
+Current releases (1 September 2026): **firmware 2.3** and **WebApp 2.6**.
 
 This public repository contains the open-source Arduino firmware, WebApp, and
 PCB design files. Other MakerBuddy clients are maintained separately and are
@@ -119,6 +119,13 @@ We welcome contributions. Feel free to report bugs, suggest features, submit
 pull requests, and share projects built with MakerBuddy.
 
 ## 📝 Release Notes
+
+### 1 September 2026
+
+**WebApp 2.6**
+
+- Detects Firefox and directs users to the official MakerBuddy Firefox Add-on,
+  matching the existing Chrome extension prompt.
 
 ### 28 August 2026
 

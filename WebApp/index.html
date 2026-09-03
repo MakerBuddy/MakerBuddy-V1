@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <!--
-  MakerBuddy V2.5 - Web Dashboard
+  MakerBuddy V2.6 - Web Dashboard
 
   Copyright (C) 2024 Muhammad Afzal
   Website: https://makerbuddy.cc
   Email: info@makerbuddy.cc
-  Version: 2.5
-  Release Date: 28 August 2026
+  Version: 2.6
+  Release Date: 1 September 2026
  
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="application-version" content="2.5">
+    <meta name="application-version" content="2.6">
     <title>MakerBuddy Web App Dashboard</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
@@ -67,6 +67,31 @@
             target="_blank" class="chrome-modal-btn">
             <span class="chrome-modal-btn-icon">🟢</span>
             Install MakerBuddy Chrome Extension
+        </a>
+        <p class="chrome-modal-note">Free &bull; No account required &bull; Works with MakerBuddy IoT Kit</p>
+    </div>
+
+    <!-- Firefox Add-on Redirect Modal (blocks Firefox users) -->
+    <div class="firefox-modal-backdrop" id="firefoxModalBackdrop"></div>
+    <div class="firefox-modal" id="firefoxModal">
+        <div class="chrome-modal-icon">🦊</div>
+        <h2 class="chrome-modal-title">Better Experience Available!</h2>
+        <p class="chrome-modal-desc">
+            We detected you are using <strong>Mozilla Firefox</strong>.<br>
+            The WebApp does not work properly on Firefox. Please install the
+            <strong>MakerBuddy Firefox Add-on</strong> for the best experience
+            controlling your MakerBuddy IoT Kit.
+        </p>
+        <div class="chrome-modal-features">
+            <div class="chrome-modal-feature"><span>✓</span> Faster device connection</div>
+            <div class="chrome-modal-feature"><span>✓</span> Native browser integration</div>
+            <div class="chrome-modal-feature"><span>✓</span> One-click access from toolbar</div>
+            <div class="chrome-modal-feature"><span>✓</span> Works with all MakerBuddy IoT Kits</div>
+        </div>
+        <a href="https://addons.mozilla.org/en-US/firefox/addon/makerbuddy-iot-controller/"
+            target="_blank" rel="noopener noreferrer" class="chrome-modal-btn">
+            <span class="chrome-modal-btn-icon">🦊</span>
+            Install MakerBuddy Firefox Add-on
         </a>
         <p class="chrome-modal-note">Free &bull; No account required &bull; Works with MakerBuddy IoT Kit</p>
     </div>
@@ -1224,19 +1249,23 @@
     </div>
 
     <script>
-        // ─── Chrome Extension Redirect ───
-        // Show modal and block the app if the user is on Google Chrome
-        // (excludes Edge, Opera, Brave which also contain "Chrome" in UA)
-        // Modal is non-dismissable — user must install the extension
+        // ─── Browser Extension Redirect ───
+        // Show a modal and block the app when a browser-specific extension is available.
+        // The Chrome check excludes Edge, Opera, and Brave, which also contain "Chrome" in UA.
+        // Modal is non-dismissable — user must install the extension.
         (function () {
             const ua = navigator.userAgent;
             const isChrome = /Chrome\/[\d.]+/.test(ua) &&
                 !/Edg/.test(ua) &&
                 !/OPR/.test(ua) &&
                 !/Brave/.test(ua);
+            const isFirefox = /Firefox\/[\d.]+/.test(ua) || /FxiOS\/[\d.]+/.test(ua);
             if (isChrome) {
                 document.getElementById('chromeModalBackdrop').classList.add('active');
                 document.getElementById('chromeModal').classList.add('active');
+            } else if (isFirefox) {
+                document.getElementById('firefoxModalBackdrop').classList.add('active');
+                document.getElementById('firefoxModal').classList.add('active');
             }
         })();
 
