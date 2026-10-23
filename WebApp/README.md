@@ -1,6 +1,69 @@
 # MakerBuddy Web Dashboard
 
-A modern, responsive WebSocket dashboard for MakerBuddy. Current WebApp version: **2.6**.
+A modern, responsive WebSocket dashboard for MakerBuddy. Current WebApp version: **3.5**.
+
+## Rule status and control fixes — v3.5 (23 October 2026)
+
+- LED brightness 0 is sent as 0. Previously dragging the slider to 0 sent 255 and lit the LED at full brightness.
+- The LED brightness slider stays disabled while a rule owns the LED card; telemetry no longer re-enables it every 2 seconds.
+- The “Less than (<)” and “Less or equal (<=)” condition operators no longer show a stray `< /option>` in their labels.
+- The grey “⏸️ Stopped” and “🛑 Manually Stopped” rule badges are now styled; their `badge-secondary` class had no CSS.
+- With firmware 2.10, rule badges and automation locks also update when a rule starts, finishes or stops on its own. Older firmware still refreshes them only on connect or after a rule command.
+
+## GitHub firmware feed — v3.4 (30 September 2026)
+
+- Use the public [raw GitHub feed](https://raw.githubusercontent.com/MakerBuddy/MakerBuddy-Firmware-OTA/main/firmware.json) for manual checks and background release notices. The GitHub `blob` page is not fetched as JSON; the old HTTP/HTTPS feed and fallback are removed.
+- Extensions permit only `https://raw.githubusercontent.com/*` for release metadata; Firefox/Safari CSP includes that host. HTTP local-device permissions and WebSockets are unchanged.
+- Accept HTTPS download links as release metadata, while offering OTA only for direct HTTP `.bin` downloads supported by the current client policy. Unsupported links produce a manual-installation message and cannot send an OTA command.
+- The verified feed reports **1.9.1**, dated **2026-05-24**, with a GitHub `blob` binary link. It is older than firmware 2.9 in this workspace. Feed/binary publishing and ESP32 HTTPS OTA migration are separate follow-ups; no GitHub writes, firmware upload, or OTA were performed.
+
+## Rule editor and firmware checks — v3.3 (30 September 2026)
+
+- Motion and Push Button conditions show True/False values (`1`/`0`) and equality only, including range comparisons and the second sensor.
+- Duplicate opens an independent named draft; saving uses the existing add command without deleting or changing the original. Device limits and demo restrictions remain enforced.
+- Drag step handles to reorder; Move up/down controls provide an accessible alternative. All step values, servo options, delays and LCD text remain together. Add Step has more top spacing.
+- Firmware checks prefer HTTPS, retain the legacy HTTP fallback where allowed, validate status/JSON/release data, time out, and display useful errors. Version comparisons handle 2.10 > 2.9. Extensions use their background worker with both official feed origins permitted. Installed Chromium reproduced a server HTTPS→HTTP redirect loop; the live route still requires a hosting change. No OTA command or firmware upload was performed.
+
+The current feed setup is documented in [deployment/README.md](deployment/README.md). The previously prepared server redirect exclusion is retained as historical guidance; GitHub-based checks do not require that hosting fix.
+
+## Servo mapping rule locks — v3.2 (30 September 2026)
+
+- Disable Servo Mapping sensor/inversion controls and the potentiometer Servo option while an enabled, running rule contains a servo step, including timer waits and non-servo steps. Enabled condition rules also reserve mapping while monitoring.
+- Firmware 2.9 pauses existing sensor/pot servo mapping throughout that reservation, holds the last angle, and rejects mapping enables through REST/WebSocket. Stop, disable, delete or one-shot completion releases it; an existing mapping resumes smoothly.
+- None and unrelated potentiometer targets remain available subject to their own rule locks. Saved mapping settings and rule-to-rule step priority are preserved.
+
+## Servo movement names — v3.1 (30 September 2026)
+
+- Rename “One way” to “Range” and “One way + reverse” to “Range + reverse”.
+- Preserve saved movement modes, start/destination angles, timing, and firmware compatibility.
+
+## Servo rule movements — v3.0 (30 September 2026)
+
+- Fix servo movement dropdown and duration controls with matching themed fields, visible labels, touch-sized inputs, and a stacked narrow layout.
+- Add one-way Start → destination and Start → destination → start movements with bounded 0–180° angles, duration per direction, and hold after the complete movement. Choose Forever to repeat continuously.
+- Firmware 2.7 is required for sweeps. Each cycle positions at the configured start angle first; one-way repeats reposition at start. A 0 ms return settles at start. These are positional servo movements within 0–180°, not unrestricted motor rotation.
+- Preserve rule priority and non-blocking motion. Version-2 `seqv_N` companion records load version-1 records without changing legacy `Sequence` or `SequenceStep` layouts.
+
+## Simple Servo Mapping — v2.9 (30 September 2026)
+
+- A separate Servo Mapping card contains a compact sensor dropdown (None, soil moisture, gas, light, DHT11 temperature, DS18B20 temperature, humidity) and Invert direction. Changes apply immediately; None releases sensor mapping for manual control.
+- Sensor ranges automatically translate to 0–180°: percentages use 0–100, DHT11 uses 0–50°C, and DS18B20 uses -55–125°C. Potentiometer, motion, push button, and distance are excluded from this dropdown.
+- Smoothing and deadband use built-in defaults. Rules retain priority, invalid or stale readings hold position, and mapping remains disabled after reboot.
+- Browser and mobile demos continuously translate their displayed sensor readings. Card visibility is independently configurable.
+
+## Servo automation — v2.8 (30 September 2026)
+
+- Map soil moisture, gas, light, DHT11 temperature, DS18B20 temperature, or humidity to a bounded servo range, with inversion, EMA smoothing, and deadband.
+- Create absolute or relative servo rule steps with non-blocking movement duration and a separate hold time; targets clamp to 0–180°.
+- Firmware arbitrates servo ownership across rules, sensor mapping, potentiometer mapping, and manual commands. Invalid/stale mapping readings hold position.
+- Mapping settings persist but mapping remains disabled after restart. Existing rule records retain their byte layout; versioned companion records store new servo options.
+- New mapping and movement options require firmware 2.4. No additional robotics features are included.
+
+
+## What's new in v2.7
+
+- Enter `demo` instead of a device host to explore animated sensor data, controls, settings, and example rules without hardware.
+- A persistent banner identifies sample data, and rule mutations explain that demo changes are not stored.
 
 ## What's new in v2.6
 

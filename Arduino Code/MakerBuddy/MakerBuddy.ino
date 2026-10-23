@@ -3,8 +3,8 @@
  *
  * Website: https://makerbuddy.cc
  * Email: info@makerbuddy.cc
- * Version: 2.3
- * Release Date: 19 August 2026
+ * Version: 2.10
+ * Release Date: 23 October 2026
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,8 +28,8 @@
 #include <DHT_U.h>
 #include <DNSServer.h>
 #include <DallasTemperature.h>
-// ESP32Servo removed — LEDC is driven directly to avoid channel/timer conflicts
-// with analogWrite() which uses channels 0-7. Servo uses its own dedicated channel.
+// Servo PWM uses an explicit channel in the ESP32 low-speed bank, separate
+// from the four automatically allocated RGB/single-LED channels.
 #include <ESPAsyncWebServer.h>
 #include <ESPmDNS.h>
 #include <HTTPClient.h>
@@ -43,7 +43,7 @@
 #include "esp_wifi.h"
 
 // Firmware Version
-#define FIRMWARE_VERSION "2.3"
+#define FIRMWARE_VERSION "2.10"
 
 // WiFi credentials - will be overridden by saved preferences
 const char *ssid = "";
@@ -111,9 +111,10 @@ String otaFirmwareURL = "";
 #define SERVO_PIN 19
 #define RELAY_PIN 23
 
-// Servo LEDC — Arduino-ESP32 v3.x pin-based API (no explicit channel numbers).
-// Each pin gets its own internal LEDC channel, so there is no timer conflict
-// with analogWrite() channels used by the RGB/LED pins.
+// Classic ESP32 Dev Module: channels 0–7 and 8–15 use separate timer banks.
+// Reserve channel 8 for servo PWM; RGB/single-LED analogWrite uses channels 0–3.
+// A different pin/channel alone does not isolate timers on earlier 3.x cores.
+#define SERVO_LEDC_CHANNEL 8
 #define SERVO_LEDC_FREQ  50    // 50 Hz = 20 ms period
 #define SERVO_LEDC_RES   16    // 16-bit for fine duty steps
 #define SERVO_US_MIN     500   // pulse width at 0°
@@ -168,6 +169,14 @@ unsigned long lastWsSensorPushMs = 0;
 unsigned long lastWsCleanupMs = 0;
 const unsigned long WS_SENSOR_PUSH_INTERVAL_MS = 2000;
 const unsigned long WS_CLEANUP_INTERVAL_MS = 10000;
+
+// Rule list pushes. Rules also start, finish and stop on their own (None
+// completion, Condition start/stop), so loop() re-sends the existing q frame
+// whenever the running/stopped/enabled bits change, at most once per interval.
+unsigned long lastWsSequencePushMs = 0;
+const unsigned long WS_SEQUENCE_PUSH_INTERVAL_MS = 1000;
+uint32_t lastPushedSequenceState = 0;
+volatile bool sequencePushRequested = false; // REST changes to the rule list
 
 // WiFi scan cache (populated once on AP start, never updated again)
 String wifiNetworksCache = "";
@@ -398,6 +407,219 @@ int sequenceCount = 0;
 // Runtime-only: true while a condition sequence is finishing its last cycle
 // before stopping (condition went false mid-cycle — avoids leaving devices ON)
 bool seqFinishing[MAX_SEQUENCES] = {false};
+ServoStepOptions servoStepOptions[MAX_SEQUENCES][10] = {};
+ServoStepRuntime servoStepRuntime[MAX_SEQUENCES];
+ServoMappingConfig servoMapping;
+bool servoMappingEnabled = false;
+bool servoMappingFiltered = false;
+float servoFilteredValue = 0;
+bool sensorValid[6] = {false};
+uint32_t sensorSampleMs = 0;
+int servoOwner = -1;
+uint32_t servoTickMs = 0;
+int servoMappingTarget = 0;
+int servoMappingStart = 0;
+uint32_t servoMappingStartMs = 0;
+bool servoMappingMoving = false;
+bool servoMappingWasPaused = true;
+void commandServoAngle(int angle);
+
+uint32_t boundedServoTime(JsonVariantConst value) {
+  double ms = value.as<double>();
+  return isfinite(ms) ? (uint32_t)constrain(ms, 0.0, 3600000.0) : 0;
+}
+
+int servoPriority(int index) {
+  switch ((SeqLoopMode)sequences[index].loopMode) {
+  case SLM_CONDITION: return 0;
+  case SLM_TIMER: return 1;
+  case SLM_FOREVER: return 2;
+  default: return 3;
+  }
+}
+
+// Mappings must not reclaim the servo between steps or timer cycles.
+// Rule-vs-rule priority still applies only to each currently executing step.
+int servoMappingRuleIndex() {
+  int owner = -1;
+  for (int i = 0; i < sequenceCount; i++) {
+    const Sequence &seq = sequences[i];
+    if (!seq.enabled || seq.manuallyStopped ||
+        (!seq.isRunning && seq.loopMode != SLM_CONDITION)) continue;
+    for (int j = 0; j < min(seq.stepCount, 10); j++) {
+      if (seq.steps[j].action != SA_SERVO_MOVE) continue;
+      if (owner < 0 || servoPriority(i) < servoPriority(owner)) owner = i;
+      break;
+    }
+  }
+  return owner;
+}
+
+bool servoMappingChangeAllowed(bool enable) {
+  return !enable || servoMappingRuleIndex() < 0;
+}
+
+bool isServoStepActive(int index) {
+  if (index < 0 || index >= sequenceCount) return false;
+  Sequence &seq = sequences[index];
+  return seq.enabled && seq.isRunning && !seq.manuallyStopped &&
+         seq.currentStep >= 0 && seq.currentStep < seq.stepCount &&
+         seq.steps[seq.currentStep].action == SA_SERVO_MOVE;
+}
+
+uint32_t servoMovementDuration(int index, int step) {
+  const ServoStepOptions &options = servoStepOptions[index][step];
+  return options.movementMs * (options.sweep == 2 ? 2 : 1);
+}
+
+bool beginServoStep(int index) {
+  if (servoOwner >= 0 && !isServoStepActive(servoOwner)) servoOwner = -1;
+  if (servoOwner >= 0 && servoOwner != index &&
+      servoPriority(servoOwner) <= servoPriority(index)) return false;
+  ServoStepRuntime &run = servoStepRuntime[index];
+  Sequence &seq = sequences[index];
+  if (run.step != seq.currentStep) run = ServoStepRuntime();
+  run.step = seq.currentStep;
+  if (servoOwner != index) {
+    // Resume interrupted moves from the held commanded position. The original
+    // relative target is retained; blocked retries must never add the delta again.
+    if (run.started) {
+      uint32_t duration = servoMovementDuration(index, seq.currentStep);
+      if (run.elapsedMs < duration) {
+        run.startAngle = servoPosition;
+        run.resumeMs = run.elapsedMs;
+      } else if (servoPosition != run.targetAngle) {
+        // A preempted hold may have been moved by the higher-priority rule.
+        // Restore smoothly and restart the hold, rather than snapping back.
+        run.startAngle = servoPosition;
+        run.resumeMs = run.returning ? servoStepOptions[index][seq.currentStep].movementMs : 0;
+        run.elapsedMs = run.resumeMs;
+        if (duration == 0) commandServoAngle(run.targetAngle);
+      }
+    }
+    servoTickMs = millis();
+  }
+  servoOwner = index;
+  servoMappingMoving = false;
+  servoMappingWasPaused = true;
+  if (!run.started) {
+    run.started = true;
+    const ServoStepOptions &options = servoStepOptions[index][seq.currentStep];
+    if (options.sweep) commandServoAngle(options.startAngle);
+    run.startAngle = servoPosition;
+    run.departureAngle = servoPosition;
+    int value = constrain(seq.steps[seq.currentStep].actionValue, -180, 180);
+    run.targetAngle = constrain(servoStepOptions[index][seq.currentStep].relative
+                                   ? servoPosition + value : value, 0, 180);
+    run.elapsedMs = 0;
+    if (options.movementMs == 0) {
+      if (options.sweep == 2) {
+        run.returning = true;
+        run.targetAngle = run.departureAngle;
+      }
+      commandServoAngle(run.targetAngle);
+    }
+  }
+  return true;
+}
+
+void resetServoStep(int index) {
+  servoStepRuntime[index] = ServoStepRuntime();
+  if (servoOwner == index) servoOwner = -1;
+}
+
+void shiftServoSlots(int index) {
+  if (servoOwner == index) servoOwner = -1;
+  else if (servoOwner > index) servoOwner--;
+  for (int i = index; i < sequenceCount - 1; i++) {
+    memcpy(servoStepOptions[i], servoStepOptions[i + 1], sizeof(servoStepOptions[i]));
+    servoStepRuntime[i] = servoStepRuntime[i + 1];
+    seqFinishing[i] = seqFinishing[i + 1];
+  }
+  memset(servoStepOptions[sequenceCount - 1], 0, sizeof(servoStepOptions[0]));
+  servoStepRuntime[sequenceCount - 1] = ServoStepRuntime();
+  seqFinishing[sequenceCount - 1] = false;
+}
+
+bool servoManualAllowed() {
+  return servoMappingRuleIndex() < 0 && !isServoStepActive(servoOwner) && !servoMappingEnabled &&
+         potMappingMode != PM_SERVO;
+}
+
+bool servoMappingValid() {
+  return servoMapping.sensor <= SS_SOIL && sensorValid[servoMapping.sensor] &&
+         (uint32_t)(millis() - sensorSampleMs) <= 3500;
+}
+
+void addServoTelemetry(JsonObject doc) {
+  int ruleIndex = isServoStepActive(servoOwner) ? servoOwner : servoMappingRuleIndex();
+  doc["sc"] = 1; // Start/destination sweep support (firmware 2.7+).
+  doc["so"] = ruleIndex >= 0 ? 3 :
+              servoMappingEnabled ? 2 : potMappingMode == PM_SERVO ? 1 : 0;
+  doc["si"] = ruleIndex;
+  doc["ss"] = !servoMappingEnabled ? 0 : ruleIndex >= 0 ? 3 :
+              !servoMappingValid() ? 2 : 1;
+  doc["tg"] = isServoStepActive(servoOwner) ? servoStepRuntime[servoOwner].targetAngle :
+              ruleIndex >= 0 ? servoPosition :
+              servoMappingEnabled || potMappingMode == PM_SERVO ? servoMappingTarget : servoPosition;
+  JsonObject config = doc.createNestedObject("sv");
+  config["en"] = servoMappingEnabled ? 1 : 0;
+  config["sn"] = servoMapping.sensor;
+  config["il"] = servoMapping.inputMin;
+  config["ih"] = servoMapping.inputMax;
+  config["al"] = servoMapping.angleMin;
+  config["ah"] = servoMapping.angleMax;
+  config["iv"] = servoMapping.inverted;
+  config["db"] = servoMapping.deadband;
+  config["sm"] = servoMapping.smoothing;
+}
+
+void servoMappingInputRange(int sensor, float &low, float &high) {
+  low = sensor == SS_DS18B20 ? -55 : 0;
+  high = sensor == SS_TEMPERATURE ? 50 : sensor == SS_DS18B20 ? 125 : 100;
+}
+
+bool configureServoMapping(JsonObjectConst config) {
+  if (config.isNull()) return false;
+  const char *keys[] = {"en", "sn", "il", "ih", "al", "ah", "iv", "db", "sm"};
+  for (const char *key : keys) {
+    if (!config[key].isNull() && (!config[key].is<double>() || !isfinite(config[key].as<double>())))
+      return false;
+  }
+  if (!servoMappingChangeAllowed((config["en"] | 0) == 1)) return false;
+  double sensorValue = config["sn"] | (double)servoMapping.sensor;
+  if (sensorValue < SS_TEMPERATURE || sensorValue > SS_SOIL || floor(sensorValue) != sensorValue)
+    return false;
+  int sensor = (int)sensorValue;
+  float minValue, maxValue;
+  servoMappingInputRange(sensor, minValue, maxValue);
+  // Simple commands get automatic ranges; legacy explicit ranges remain supported.
+  float low = config["il"] | minValue;
+  float high = config["ih"] | maxValue;
+  int angleLow = config["al"] | 0;
+  int angleHigh = config["ah"] | 180;
+  if (!isfinite(low) || !isfinite(high) || low >= high || low < minValue ||
+      high > maxValue || angleLow < 0 || angleHigh > 180 || angleLow > angleHigh)
+    return false;
+  servoMapping.sensor = sensor;
+  servoMapping.inputMin = low;
+  servoMapping.inputMax = high;
+  servoMapping.angleMin = angleLow;
+  servoMapping.angleMax = angleHigh;
+  servoMapping.inverted = (config["iv"] | 0) == 1;
+  servoMapping.deadband = constrain(config["db"] | 3, 1, 10);
+  servoMapping.smoothing = constrain(config["sm"] | 35, 1, 100);
+  servoMappingEnabled = (config["en"] | 0) == 1;
+  servoMappingFiltered = false;
+  servoMappingMoving = false;
+  servoMappingWasPaused = true;
+  if (servoMappingEnabled && potMappingMode == PM_SERVO) {
+    potMappingMode = PM_NONE;
+    preferences.putUChar("potMappingId", PM_NONE);
+  }
+  preferences.putBytes("servoMap", &servoMapping, sizeof(servoMapping));
+  return true;
+}
 
 const float MAX_ULTRASONIC_DISTANCE_CM = 500.0;
 
@@ -428,6 +650,7 @@ bool getCurrentLEDBlinking();
 void setRGBManual(int r, int g, int b);
 void updateRGBOutput();
 void writeServo(int angle);
+void performOTAUpdate(String firmwareURL);
 uint32_t packRGB(int r, int g, int b);
 int getCurrentRGBR();
 int getCurrentRGBG();
@@ -545,17 +768,120 @@ int getCurrentRGBG() { return rgbControl.g; }
 
 int getCurrentRGBB() { return rgbControl.b; }
 
-// Write a servo angle (0-180°) via dedicated LEDC channel.
-// Using direct LEDC instead of ESP32Servo avoids the timer-frequency conflict
-// that occurs when analogWrite() (1000 Hz) and ESP32Servo (50 Hz) happen to
-// share the same LEDC timer, causing the servo to receive ~75 µs pulses
-// (at 1000 Hz period) instead of the expected 1500 µs — explaining the
-// "moves only a little bit" symptom.
+bool initializeServoPWM() {
+  if (!ledcAttachChannel(SERVO_PIN, SERVO_LEDC_FREQ, SERVO_LEDC_RES,
+                         SERVO_LEDC_CHANNEL)) {
+    Serial.println("[SERVO] Failed to initialize dedicated 50 Hz PWM channel");
+    return false;
+  }
+  writeServo(servoPosition);
+  return true;
+}
+
+// Write a servo angle (0–180°). PWM continues holding the commanded angle
+// after movement/hold timers finish, including while a timer rule is parked.
 void writeServo(int angle) {
   angle = constrain(angle, 0, 180);
   uint32_t us = (uint32_t)map(angle, 0, 180, SERVO_US_MIN, SERVO_US_MAX);
   uint32_t duty = (uint32_t)((uint64_t)us * 65535UL / 20000UL);
   ledcWrite(SERVO_PIN, duty);
+}
+
+void commandServoAngle(int angle) {
+  angle = constrain(angle, 0, 180);
+  if (angle == servoPosition) return;
+  servoPosition = angle;
+  writeServo(angle);
+}
+
+void updateServoMappingSample() {
+  if (!servoMappingEnabled || !servoMappingValid()) {
+    servoMappingFiltered = false;
+    servoMappingMoving = false;
+    servoMappingWasPaused = true;
+    return;
+  }
+  float value = getSensorValueById((SeqSensor)servoMapping.sensor);
+  if (!servoMappingFiltered) servoFilteredValue = value;
+  else servoFilteredValue += (value - servoFilteredValue) * servoMapping.smoothing / 100.0f;
+  servoMappingFiltered = true;
+  float fraction = constrain((servoFilteredValue - servoMapping.inputMin) /
+                            (servoMapping.inputMax - servoMapping.inputMin), 0.0f, 1.0f);
+  if (servoMapping.inverted) fraction = 1.0f - fraction;
+  int target = lroundf(servoMapping.angleMin + fraction *
+                      (servoMapping.angleMax - servoMapping.angleMin));
+  if (isServoStepActive(servoOwner) || servoMappingRuleIndex() >= 0) {
+    servoMappingTarget = target;
+    servoMappingMoving = false;
+    servoMappingWasPaused = true;
+    return;
+  }
+  if (servoMappingWasPaused || abs(target - servoMappingTarget) >= servoMapping.deadband) {
+    servoMappingTarget = target;
+    servoMappingStart = servoPosition;
+    servoMappingStartMs = millis();
+    servoMappingMoving = true;
+    servoMappingWasPaused = false;
+  }
+}
+
+void processServoMotion() {
+  uint32_t now = millis();
+  if (servoMappingEnabled && !servoMappingFiltered) updateServoMappingSample();
+  if (!isServoStepActive(servoOwner)) {
+    servoOwner = -1;
+    if (servoMappingRuleIndex() >= 0) {
+      servoMappingMoving = false;
+      servoMappingWasPaused = true;
+      return;
+    }
+    bool potServo = potMappingMode == PM_SERVO;
+    bool valid = potServo ? (uint32_t)(now - sensorSampleMs) <= 3500 : servoMappingValid();
+    if ((!servoMappingEnabled && !potServo) || !valid) {
+      servoMappingMoving = false;
+      servoMappingWasPaused = true;
+      return;
+    }
+    if (servoMappingWasPaused) {
+      servoMappingStart = servoPosition;
+      servoMappingStartMs = now;
+      servoMappingMoving = true;
+      servoMappingWasPaused = false;
+    }
+    if (!servoMappingMoving || (uint32_t)(now - servoTickMs) < 20) return;
+    servoTickMs = now;
+    uint32_t elapsed = min((uint32_t)(now - servoMappingStartMs), (uint32_t)500);
+    // Compute a floating-point fraction first: multiplying a negative angle
+    // delta by unsigned elapsed time would wrap and clamp the servo to 180.
+    float progress = elapsed / 500.0f;
+    commandServoAngle(servoMappingStart +
+        lroundf((servoMappingTarget - servoMappingStart) * progress));
+    if (elapsed == 500) servoMappingMoving = false;
+    return;
+  }
+  uint32_t delta = now - servoTickMs;
+  if (delta < 20) return;
+  servoTickMs = now;
+  ServoStepRuntime &run = servoStepRuntime[servoOwner];
+  if (!run.started) return;
+  const ServoStepOptions &options = servoStepOptions[servoOwner][run.step];
+  uint32_t duration = servoMovementDuration(servoOwner, run.step);
+  uint32_t total = duration + sequences[servoOwner].steps[run.step].delayMs;
+  run.elapsedMs = min(run.elapsedMs + delta, total);
+  if (options.sweep == 2 && !run.returning && run.elapsedMs >= options.movementMs) {
+    run.returning = true;
+    run.startAngle = run.targetAngle;
+    run.targetAngle = run.departureAngle;
+    run.resumeMs = options.movementMs;
+  }
+  uint32_t legEnd = options.sweep == 2 && !run.returning ? options.movementMs : duration;
+  if (duration == 0 || run.elapsedMs >= legEnd) commandServoAngle(run.targetAngle);
+  else {
+    uint32_t remaining = legEnd - run.resumeMs;
+    float progress = (run.elapsedMs - run.resumeMs) / (float)remaining;
+    commandServoAngle(run.startAngle +
+                      lroundf((run.targetAngle - run.startAngle) * progress));
+  }
 }
 
 // ============================================================================
@@ -590,11 +916,12 @@ void setup() {
 
   dht.begin();
   ds18b20.begin();
+  ds18b20.setWaitForConversion(false);
+  ds18b20.requestTemperatures();
   lcd.init();
   lcd.backlight();
 
-  ledcAttach(SERVO_PIN, SERVO_LEDC_FREQ, SERVO_LEDC_RES);
-  writeServo(servoPosition);
+  initializeServoPWM();
 
   // Initialize NFC reader
   Wire.begin();
@@ -651,7 +978,8 @@ void setup() {
         }
         // Execute first step immediately
         if (sequences[i].stepCount > 0) {
-          executeSequenceStep(sequences[i].steps[0]);
+          if (sequences[i].steps[0].action != SA_SERVO_MOVE)
+            executeSequenceStep(sequences[i].steps[0]);
         }
       }
     }
@@ -679,6 +1007,18 @@ void setup() {
 
   // Force pot mapping to none on startup to prevent unexpected servo/jitter behavior
   potMappingMode = PM_NONE;
+
+  ServoMappingConfig savedServoMapping;
+  if (preferences.getBytes("servoMap", &savedServoMapping, sizeof(savedServoMapping)) ==
+          sizeof(savedServoMapping) && savedServoMapping.version == 1 &&
+      savedServoMapping.sensor <= SS_SOIL && isfinite(savedServoMapping.inputMin) &&
+      isfinite(savedServoMapping.inputMax) && savedServoMapping.inputMin < savedServoMapping.inputMax &&
+      savedServoMapping.angleMin <= savedServoMapping.angleMax && savedServoMapping.angleMax <= 180 &&
+      savedServoMapping.deadband >= 1 && savedServoMapping.deadband <= 10 &&
+      savedServoMapping.smoothing >= 1 && savedServoMapping.smoothing <= 100)
+    servoMapping = savedServoMapping;
+  // Retain settings but require explicit enable after every boot.
+  servoMappingEnabled = false;
 
   soilMoistureDryRaw = preferences.getInt("soilDry", 3000);
   soilMoistureWetRaw = preferences.getInt("soilWet", 1200);
@@ -759,6 +1099,7 @@ void loop() {
   if (!saveSequencesFlag) {
     processSequences();
   }
+  processServoMotion();
 
   if (handleLEDBlinkFlag) {
     handleLEDBlinkFlag = false;
@@ -776,6 +1117,8 @@ void loop() {
     saveSequencesFlag = false;
     saveSequences();
   }
+
+  wsMaybeBroadcastSequences();
 
   if (millis() - lastWsCleanupMs > WS_CLEANUP_INTERVAL_MS) {
     lastWsCleanupMs = millis();
@@ -1026,7 +1369,7 @@ void setupWebServer() {
   server.on("/api/sensors", HTTP_GET, [](AsyncWebServerRequest *request) {
     AsyncResponseStream *response =
         request->beginResponseStream("application/json");
-    StaticJsonDocument<512> doc;
+    StaticJsonDocument<1280> doc;
     doc["te"] = sensorData.temperature;
     doc["hu"] = sensorData.humidity;
     doc["d8"] = sensorData.ds18b20Temp;
@@ -1055,6 +1398,7 @@ void setupWebServer() {
 
     doc["pm"] = potMappingMode;
     doc["pv"] = potMappedValue;
+    addServoTelemetry(doc.as<JsonObject>());
 
     serializeJson(doc, *response);
     request->send(response);
@@ -1129,9 +1473,11 @@ void setupWebServer() {
 
   server.on("/api/servo", HTTP_POST, [](AsyncWebServerRequest *request) {
     if (request->hasParam("position", true)) {
-      servoPosition = request->getParam("position", true)->value().toInt();
-      servoPosition = constrain(servoPosition, 0, 180);
-      writeServo(servoPosition);
+      if (!servoManualAllowed()) {
+        request->send(409, "application/json", "{\"error\":\"Servo is controlled by automation\"}");
+        return;
+      }
+      commandServoAngle(request->getParam("position", true)->value().toInt());
       request->send(200, "application/json", "{\"status\":\"success\"}");
     } else {
       request->send(400, "application/json",
@@ -1169,7 +1515,7 @@ void setupWebServer() {
   server.on("/api/sequences", HTTP_GET, [](AsyncWebServerRequest *request) {
     AsyncResponseStream *response =
         request->beginResponseStream("application/json");
-    DynamicJsonDocument doc(6144);
+    DynamicJsonDocument doc(24576);
     JsonArray seqArray = doc.createNestedArray("sequences");
 
     for (int i = 0; i < sequenceCount; i++) {
@@ -1231,6 +1577,12 @@ void setupWebServer() {
             seqActionToString((SeqAction)sequences[i].steps[j].action);
         stepObj["actionValue"] = sequences[i].steps[j].actionValue;
         stepObj["delay"] = sequences[i].steps[j].delayMs;
+        if (sequences[i].steps[j].action == SA_SERVO_MOVE) {
+          stepObj["relative"] = servoStepOptions[i][j].relative;
+          stepObj["movementMs"] = servoStepOptions[i][j].movementMs;
+          stepObj["sweep"] = servoStepOptions[i][j].sweep;
+          stepObj["startAngle"] = servoStepOptions[i][j].startAngle;
+        }
         if (sequences[i].steps[j].action == SA_LCD_DISPLAY) {
           stepObj["lcdMode"] =
               seqLcdModeToString((SeqLcdMode)sequences[i].steps[j].lcdMode);
@@ -1250,6 +1602,7 @@ void setupWebServer() {
       String action = request->getParam("action", true)->value();
 
       if (action == "add" && sequenceCount < MAX_SEQUENCES) {
+        ServoStepOptions newServoOptions[10] = {};
         Sequence newSeq;
         memset(&newSeq, 0, sizeof(newSeq)); // zero-init to avoid garbage in unused fields
         newSeq.enabled =
@@ -1280,7 +1633,7 @@ void setupWebServer() {
                 : "interval");
         newSeq.loopDuration =
             request->hasParam("loopDuration", true)
-                ? request->getParam("loopDuration", true)->value().toInt()
+                ? strtoul(request->getParam("loopDuration", true)->value().c_str(), nullptr, 10)
                 : 0;
         newSeq.loopStartTime = 0;
         newSeq.lastIntervalTime = 0;
@@ -1385,7 +1738,26 @@ void setupWebServer() {
                                    : 1000;
             if (parsedDelay < 0)
               parsedDelay = 0;
-            newSeq.steps[i].delayMs = (unsigned long)parsedDelay;
+            newSeq.steps[i].delayMs = min((unsigned long)parsedDelay, 3600000UL);
+            if (newSeq.steps[i].action == SA_SERVO_MOVE) {
+              String relativeParam = "step" + String(i) + "_relative";
+              String movementParam = "step" + String(i) + "_movementMs";
+              newServoOptions[i].relative = request->hasParam(relativeParam.c_str(), true) &&
+                  request->getParam(relativeParam.c_str(), true)->value() == "1";
+              long movement = request->hasParam(movementParam.c_str(), true) ?
+                  request->getParam(movementParam.c_str(), true)->value().toInt() : 0;
+              newServoOptions[i].movementMs = constrain(movement, 0L, 3600000L);
+              String sweepParam = "step" + String(i) + "_sweep";
+              String startParam = "step" + String(i) + "_startAngle";
+              int sweep = request->hasParam(sweepParam.c_str(), true) ?
+                  request->getParam(sweepParam.c_str(), true)->value().toInt() : 0;
+              newServoOptions[i].sweep = sweep == 1 || sweep == 2 ? sweep : 0;
+              newServoOptions[i].startAngle = constrain(request->hasParam(startParam.c_str(), true) ?
+                  request->getParam(startParam.c_str(), true)->value().toInt() : 0L, 0L, 180L);
+              if (newServoOptions[i].sweep) newServoOptions[i].relative = 0;
+              newSeq.steps[i].actionValue = constrain(newSeq.steps[i].actionValue,
+                  newServoOptions[i].relative ? -180 : 0, 180);
+            }
             String lcdModeParam = "step" + String(i) + "_lcdMode";
             String lcdText1Param = "step" + String(i) + "_lcdText1";
             String lcdText2Param = "step" + String(i) + "_lcdText2";
@@ -1425,6 +1797,8 @@ void setupWebServer() {
           return;
         }
 
+        memcpy(servoStepOptions[sequenceCount], newServoOptions, sizeof(newServoOptions));
+        resetServoStep(sequenceCount);
         sequences[sequenceCount] = newSeq;
         sequenceCount++;
         // Mark only the new slot dirty + update count
@@ -1444,7 +1818,7 @@ void setupWebServer() {
               ns.loopStartTime = millis();
               ns.lastIntervalTime = millis();
             }
-            executeSequenceStep(ns.steps[0]);
+            if (ns.steps[0].action != SA_SERVO_MOVE) executeSequenceStep(ns.steps[0]);
           }
         }
 
@@ -1454,7 +1828,9 @@ void setupWebServer() {
       } else if (action == "delete" && request->hasParam("index", true)) {
         int index = request->getParam("index", true)->value().toInt();
         if (index >= 0 && index < sequenceCount) {
+          resetServoStep(index);
           sequences[index].isRunning = false;
+          shiftServoSlots(index);
           for (int i = index; i < sequenceCount - 1; i++) {
             sequences[i] = sequences[i + 1];
             String nextKey = "seqms_" + String(i + 1);
@@ -1494,20 +1870,7 @@ void setupWebServer() {
       } else if (action == "start" && request->hasParam("index", true)) {
         int index = request->getParam("index", true)->value().toInt();
         if (index >= 0 && index < sequenceCount) {
-          sequences[index].isRunning = true;
-          sequences[index].currentStep = 0;
-          sequences[index].lastStepTime = millis();
-          sequences[index].manuallyStopped = false;
-          preferences.remove(("seqms_" + String(index)).c_str());
-          // manuallyStopped is persisted via seqms_ key, no blob rewrite needed
-          if (sequences[index].loopMode == SLM_TIMER) {
-            sequences[index].loopStartTime = millis();
-            sequences[index].lastIntervalTime = millis();
-          }
-          if (sequences[index].stepCount > 0 &&
-              sequences[index].loopMode != SLM_CONDITION) {
-            executeSequenceStep(sequences[index].steps[0]);
-          }
+          startSequence(index);
           request->send(
               200, "application/json",
               "{\"status\":\"success\",\"message\":\"Sequence started\"}");
@@ -1515,6 +1878,7 @@ void setupWebServer() {
       } else if (action == "stop" && request->hasParam("index", true)) {
         int index = request->getParam("index", true)->value().toInt();
         if (index >= 0 && index < sequenceCount) {
+          resetServoStep(index);
           sequences[index].isRunning = false;
           sequences[index].currentStep = 0;
           sequences[index].manuallyStopped = true;
@@ -1528,6 +1892,7 @@ void setupWebServer() {
       } else if (action == "toggle" && request->hasParam("index", true)) {
         int index = request->getParam("index", true)->value().toInt();
         if (index >= 0 && index < sequenceCount) {
+          resetServoStep(index);
           sequences[index].enabled = !sequences[index].enabled;
           saveSeqDirtyMask |= (1 << index);
           saveSequencesFlag = true;
@@ -1541,15 +1906,45 @@ void setupWebServer() {
             400, "application/json",
             "{\"error\":\"Invalid action or sequence limit reached\"}");
       }
+      // Let WebSocket dashboards see REST rule changes; loop() sends the q.
+      sequencePushRequested = true;
     } else {
       request->send(400, "application/json",
                     "{\"error\":\"Missing action parameter\"}");
     }
   });
 
+  server.on("/api/servomapping", HTTP_POST, [](AsyncWebServerRequest *request) {
+    StaticJsonDocument<384> config;
+    const char *keys[] = {"en", "sn", "il", "ih", "al", "ah", "iv", "db", "sm"};
+    for (const char *key : keys) {
+      if (request->hasParam(key, true)) {
+        String value = request->getParam(key, true)->value();
+        char *end = nullptr;
+        double parsed = strtod(value.c_str(), &end);
+        if (end == value.c_str() || *end != 0 || !isfinite(parsed)) {
+          request->send(400, "application/json", "{\"error\":\"Invalid mapping number\"}"); return;
+        }
+        config[key] = parsed;
+      }
+    }
+    if (!servoMappingChangeAllowed((config["en"] | 0) == 1)) {
+      request->send(409, "application/json", "{\"error\":\"Servo mapping is paused by an active rule\"}"); return;
+    }
+    if (!configureServoMapping(config.as<JsonObjectConst>())) {
+      request->send(400, "application/json", "{\"error\":\"Invalid servo mapping ranges\"}"); return;
+    }
+    request->send(200, "application/json", "{\"status\":\"success\"}");
+    lastWsSensorPushMs = millis() - WS_SENSOR_PUSH_INTERVAL_MS;
+    wsMaybeBroadcastSensors();
+  });
+
   server.on("/api/potmapping", HTTP_POST, [](AsyncWebServerRequest *request) {
     if (request->hasParam("mode", true)) {
       String mode = request->getParam("mode", true)->value();
+      if (mode == "servo" && !servoMappingChangeAllowed(true)) {
+        request->send(409, "application/json", "{\"error\":\"Servo mapping is paused by an active rule\"}"); return;
+      }
       if (mode == "none" || mode == "led" || mode == "rgb" || mode == "servo") {
         if (mode == "led")
           potMappingMode = PM_LED;
@@ -1559,10 +1954,15 @@ void setupWebServer() {
           potMappingMode = PM_SERVO;
         else
           potMappingMode = PM_NONE;
+        if (potMappingMode == PM_SERVO) { servoMappingEnabled = false; servoMappingMoving = false; }
+        servoMappingMoving = false;
+        servoMappingWasPaused = true;
         preferences.putUChar("potMappingId", potMappingMode);
         preferences.remove("potMapping");
         request->send(200, "application/json",
                       "{\"status\":\"success\",\"mode\":\"" + mode + "\"}");
+        lastWsSensorPushMs = millis() - WS_SENSOR_PUSH_INTERVAL_MS;
+        wsMaybeBroadcastSensors();
       } else {
         request->send(400, "application/json", "{\"error\":\"Invalid mode\"}");
       }
@@ -1644,7 +2044,7 @@ void wsMaybeBroadcastSensors() {
     return;
   lastWsSensorPushMs = now;
 
-  StaticJsonDocument<640> doc;
+  StaticJsonDocument<1280> doc;
   doc["m"] = "s";
   doc["te"] = sensorData.temperature;
   doc["hu"] = sensorData.humidity;
@@ -1674,6 +2074,7 @@ void wsMaybeBroadcastSensors() {
 
   doc["pm"] = potMappingMode;
   doc["pv"] = potMappedValue;
+    addServoTelemetry(doc.as<JsonObject>());
 
   String out;
   serializeJson(doc, out);
@@ -1681,7 +2082,7 @@ void wsMaybeBroadcastSensors() {
 }
 
 String getSequencesJSONCompact() {
-  StaticJsonDocument<4096> doc;
+  DynamicJsonDocument doc(24576);
   doc["m"] = "q";
   JsonArray arr = doc.createNestedArray("sq");
 
@@ -1723,6 +2124,14 @@ String getSequencesJSONCompact() {
       st["a"] = seqActionToString((SeqAction)sequences[i].steps[j].action);
       st["v"] = sequences[i].steps[j].actionValue;
       st["d"] = sequences[i].steps[j].delayMs;
+      if (sequences[i].steps[j].action == SA_SERVO_MOVE) {
+        st["rv"] = servoStepOptions[i][j].relative;
+        st["mv"] = servoStepOptions[i][j].movementMs;
+        if (servoStepOptions[i][j].sweep) {
+          st["sw"] = servoStepOptions[i][j].sweep;
+          st["sa"] = servoStepOptions[i][j].startAngle;
+        }
+      }
       if (sequences[i].steps[j].action == SA_LCD_DISPLAY) {
         st["lm"] =
             seqLcdModeToString((SeqLcdMode)sequences[i].steps[j].lcdMode);
@@ -1737,6 +2146,66 @@ String getSequencesJSONCompact() {
   String out;
   serializeJson(doc, out);
   return out;
+}
+
+// One bit per rule for running (0-9), manually stopped (10-19) and enabled
+// (20-29): the q fields a client's badges and automation locks depend on.
+uint32_t sequenceRunState() {
+  uint32_t state = 0;
+  for (int i = 0; i < sequenceCount && i < MAX_SEQUENCES; i++) {
+    if (sequences[i].isRunning)
+      state |= 1UL << i;
+    if (sequences[i].manuallyStopped)
+      state |= 1UL << (i + 10);
+    if (sequences[i].enabled)
+      state |= 1UL << (i + 20);
+  }
+  return state;
+}
+
+// Called from loop(). Older clients already apply a q frame at any time, so no
+// new message type is needed. The state is sampled before the list is built:
+// a change made while building is pushed again on a later pass, never lost.
+void wsMaybeBroadcastSequences() {
+  const uint32_t state = sequenceRunState();
+  if (state == lastPushedSequenceState && !sequencePushRequested)
+    return;
+  const unsigned long now = millis();
+  if (now - lastWsSequencePushMs < WS_SEQUENCE_PUSH_INTERVAL_MS)
+    return;
+  lastWsSequencePushMs = now;
+  lastPushedSequenceState = state;
+  sequencePushRequested = false;
+  if (ws.count() == 0)
+    return;
+  wsSendTextAll(getSequencesJSONCompact());
+}
+
+// Manual start (WebSocket X a=2 or REST action=start). A Condition rule is not
+// forced to run: clearing the manual stop returns it to monitoring with a fresh
+// debounce, so its first cycle begins at step 0 through the priority engine
+// once the condition is true, exactly as after boot or creation.
+void startSequence(int index) {
+  Sequence &seq = sequences[index];
+  resetServoStep(index);
+  seq.currentStep = 0;
+  seq.lastStepTime = millis();
+  seq.manuallyStopped = false;
+  preferences.remove(("seqms_" + String(index)).c_str());
+  // manuallyStopped is persisted via seqms_ key, no blob rewrite needed
+  if (seq.loopMode == SLM_CONDITION) {
+    seq.isRunning = false;
+    seq.conditionInit = false;
+    seqFinishing[index] = false;
+    return;
+  }
+  seq.isRunning = true;
+  if (seq.loopMode == SLM_TIMER) {
+    seq.loopStartTime = millis();
+    seq.lastIntervalTime = millis();
+  }
+  if (seq.stepCount > 0 && seq.steps[0].action != SA_SERVO_MOVE)
+    executeSequenceStep(seq.steps[0]);
 }
 
 void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client,
@@ -1767,6 +2236,12 @@ void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client,
 
     out = getSequencesJSONCompact();
     wsSendText(client, out);
+    StaticJsonDocument<512> servoInfo;
+    servoInfo["m"] = "j";
+    addServoTelemetry(servoInfo.as<JsonObject>());
+    out = "";
+    serializeJson(servoInfo, out);
+    wsSendText(client, out);
 
     wsMaybeBroadcastSensors();
     return;
@@ -1780,17 +2255,12 @@ void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client,
       info->opcode != WS_TEXT)
     return;
 
-  // Use a stack buffer if message is small, otherwise heap
-  // This avoids String reallocation for every message
-  if (len > 1024)
+  // Bounded heap-backed parsing avoids a 4 KB frame copy on the TCP task stack.
+  if (len > 4096)
     return; // Ignore huge messages to prevent crash
 
-  char msg[len + 1];
-  memcpy(msg, data, len);
-  msg[len] = 0;
-
-  StaticJsonDocument<1024> doc;
-  DeserializationError err = deserializeJson(doc, msg);
+  DynamicJsonDocument doc(8192);
+  DeserializationError err = deserializeJson(doc, (const char *)data, len);
   if (err)
     return;
 
@@ -1830,8 +2300,8 @@ void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client,
     } else {
       pos = servoPosition;
     }
-    servoPosition = constrain(pos, 0, 180);
-    writeServo(servoPosition);
+    if (servoManualAllowed()) commandServoAngle(pos);
+    else wsSendText(client, "{\"m\":\"e\",\"error\":\"Servo is controlled by automation\"}");
     break;
   }
   case 'Z': { // Buzzer
@@ -1866,15 +2336,34 @@ void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client,
     }
     break;
   }
+  case 'J': { // Sensor-to-servo mapping configuration
+    if (!servoMappingChangeAllowed((doc["en"] | 0) == 1)) {
+      wsSendText(client, "{\"m\":\"e\",\"error\":\"Servo mapping is paused by an active rule\"}"); break;
+    }
+    if (!configureServoMapping(doc.as<JsonObjectConst>())) {
+      wsSendText(client, "{\"m\":\"e\",\"error\":\"Invalid servo mapping ranges\"}");
+    }
+    lastWsSensorPushMs = millis() - WS_SENSOR_PUSH_INTERVAL_MS;
+    wsMaybeBroadcastSensors();
+    break;
+  }
   case 'P': { // Pot mapping
     int mode = doc["md"] | 0;
     if (mode < 0)
       mode = 0;
     if (mode > PM_SERVO)
       mode = PM_NONE;
+    if (mode == PM_SERVO && !servoMappingChangeAllowed(true)) {
+      wsSendText(client, "{\"m\":\"e\",\"error\":\"Servo mapping is paused by an active rule\"}"); break;
+    }
+    if (mode == PM_SERVO) { servoMappingEnabled = false; servoMappingMoving = false; }
     potMappingMode = (uint8_t)mode;
+    servoMappingMoving = false;
+    servoMappingWasPaused = true;
     preferences.putUChar("potMappingId", potMappingMode);
     preferences.remove("potMapping");
+    lastWsSensorPushMs = millis() - WS_SENSOR_PUSH_INTERVAL_MS;
+    wsMaybeBroadcastSensors();
     break;
   }
   case 'M': { // Soil moisture calibration
@@ -1917,6 +2406,7 @@ void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client,
     if (action == 0 && sequenceCount < MAX_SEQUENCES) {
       JsonObject s = doc["s"];
       if (!s.isNull()) {
+        ServoStepOptions newServoOptions[10] = {};
         Sequence newSeq;
         memset(&newSeq, 0, sizeof(newSeq)); // zero-init to avoid garbage in unused fields
         newSeq.enabled = (s["e"] | 1) == 1;
@@ -1932,7 +2422,8 @@ void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client,
 
         newSeq.timerType = (uint8_t)seqTimerTypeFromString(
             String((const char *)(s["tt"] | "interval")));
-        newSeq.loopDuration = s["ld"] | 0;
+        // Unsigned: the 999 h client maximum exceeds a signed 32-bit int.
+        newSeq.loopDuration = s["ld"] | 0UL;
         newSeq.loopStartTime = 0;
         newSeq.lastIntervalTime = 0;
 
@@ -1977,10 +2468,20 @@ void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client,
             newSeq.steps[sc].action = (uint8_t)seqActionFromString(
                 String((const char *)(st["a"] | "")));
             newSeq.steps[sc].actionValue = st["v"] | 0;
+            if (newSeq.steps[sc].action == SA_SERVO_MOVE) {
+              newServoOptions[sc].relative = (st["rv"] | 0) == 1;
+              newServoOptions[sc].movementMs = boundedServoTime(st["mv"]);
+              int sweep = st["sw"] | 0;
+              newServoOptions[sc].sweep = sweep == 1 || sweep == 2 ? sweep : 0;
+              newServoOptions[sc].startAngle = constrain(st["sa"] | 0, 0, 180);
+              if (newServoOptions[sc].sweep) newServoOptions[sc].relative = 0;
+              newSeq.steps[sc].actionValue = constrain(newSeq.steps[sc].actionValue,
+                  newServoOptions[sc].relative ? -180 : 0, 180);
+            }
             long parsedDelay = st["d"] | 1000;
             if (parsedDelay < 0)
               parsedDelay = 0;
-            newSeq.steps[sc].delayMs = (unsigned long)parsedDelay;
+            newSeq.steps[sc].delayMs = min((unsigned long)parsedDelay, 3600000UL);
             newSeq.steps[sc].lcdMode = (uint8_t)seqLcdModeFromString(
                 String((const char *)(st["lm"] | "custom")));
 
@@ -2009,6 +2510,8 @@ void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client,
         }
         newSeq.stepCount = sc;
 
+        memcpy(servoStepOptions[sequenceCount], newServoOptions, sizeof(newServoOptions));
+        resetServoStep(sequenceCount);
         sequences[sequenceCount] = newSeq;
         sequenceCount++;
         // Mark only the new slot dirty + update count
@@ -2028,12 +2531,14 @@ void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client,
               ns.loopStartTime = millis();
               ns.lastIntervalTime = millis();
             }
-            executeSequenceStep(ns.steps[0]);
+            if (ns.steps[0].action != SA_SERVO_MOVE) executeSequenceStep(ns.steps[0]);
           }
         }
       }
     } else if (action == 1 && index >= 0 && index < sequenceCount) {
+      resetServoStep(index);
       sequences[index].isRunning = false;
+      shiftServoSlots(index);
       for (int i = index; i < sequenceCount - 1; i++) {
         sequences[i] = sequences[i + 1];
         // Shift compact stopped-key down to match new index
@@ -2054,21 +2559,9 @@ void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client,
       saveSeqCountChanged = true;
       saveSequencesFlag = true;
     } else if (action == 2 && index >= 0 && index < sequenceCount) {
-      sequences[index].isRunning = true;
-      sequences[index].currentStep = 0;
-      sequences[index].lastStepTime = millis();
-      sequences[index].manuallyStopped = false;
-      preferences.remove(("seqms_" + String(index)).c_str());
-      // manuallyStopped is persisted via seqms_ key, no blob rewrite needed
-      if (sequences[index].loopMode == SLM_TIMER) {
-        sequences[index].loopStartTime = millis();
-        sequences[index].lastIntervalTime = millis();
-      }
-      if (sequences[index].stepCount > 0 &&
-          sequences[index].loopMode != SLM_CONDITION) {
-        executeSequenceStep(sequences[index].steps[0]);
-      }
+      startSequence(index);
     } else if (action == 3 && index >= 0 && index < sequenceCount) {
+      resetServoStep(index);
       sequences[index].isRunning = false;
       sequences[index].currentStep = 0;
       sequences[index].manuallyStopped = true;
@@ -2076,11 +2569,16 @@ void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client,
       preferences.putBool(("seqms_" + String(index)).c_str(), true);
       // manuallyStopped is persisted via seqms_ key, no blob rewrite needed
     } else if (action == 4 && index >= 0 && index < sequenceCount) {
+      resetServoStep(index);
       sequences[index].enabled = !sequences[index].enabled;
       saveSeqDirtyMask |= (1 << index);
       saveSequencesFlag = true;
     }
 
+    // Sample before building, as in wsMaybeBroadcastSequences(), so loop()
+    // neither repeats this push nor misses a change made meanwhile.
+    lastPushedSequenceState = sequenceRunState();
+    lastWsSequencePushMs = millis();
     String out = getSequencesJSONCompact();
     wsSendTextAll(out);
     break;
@@ -2480,6 +2978,7 @@ int computeSoilMoisturePercent(int raw) {
 void readSensors() {
   sensors_event_t event;
   dht.temperature().getEvent(&event);
+  sensorValid[SS_TEMPERATURE] = isfinite(event.temperature);
   if (isnan(event.temperature)) {
     sensorData.temperature = 0.0;
   } else {
@@ -2487,19 +2986,22 @@ void readSensors() {
   }
 
   dht.humidity().getEvent(&event);
+  sensorValid[SS_HUMIDITY] = isfinite(event.relative_humidity);
   if (isnan(event.relative_humidity)) {
     sensorData.humidity = 0.0;
   } else {
     sensorData.humidity = event.relative_humidity;
   }
 
-  ds18b20.requestTemperatures();
   float ds18b20Reading = ds18b20.getTempCByIndex(0);
   if (ds18b20Reading == DEVICE_DISCONNECTED_C) {
     sensorData.ds18b20Temp = 0.0;
   } else {
     sensorData.ds18b20Temp = ds18b20Reading;
   }
+  sensorValid[SS_DS18B20] = isfinite(ds18b20Reading) &&
+      ds18b20Reading != DEVICE_DISCONNECTED_C && ds18b20Reading >= -55 && ds18b20Reading <= 125;
+  ds18b20.requestTemperatures(); // Start the next conversion without blocking motion.
 
   // Average 4 reads per pin to reduce ESP32 ADC noise
   auto readAvg = [](int pin) -> int {
@@ -2512,6 +3014,10 @@ void readSensors() {
   sensorData.gasLevel = map(readAvg(MQ2_PIN), 0, 4095, 0, 100);
   sensorData.soilRaw = readAvg(SOIL_MOISTURE_PIN);
   sensorData.soilMoisture = computeSoilMoisturePercent(sensorData.soilRaw);
+  sensorValid[SS_LIGHT] = true;
+  sensorValid[SS_GAS] = true;
+  sensorValid[SS_SOIL] = soilMoistureDryRaw != soilMoistureWetRaw;
+  sensorSampleMs = millis();
 
   sensorData.buttonPressed = !digitalRead(PUSH_BUTTON_PIN);
   sensorData.motionDetected = digitalRead(PIR_PIN);
@@ -2536,6 +3042,7 @@ void readSensors() {
 
   // Process potentiometer mapping
   processPotentiometerMapping();
+  updateServoMappingSample();
 
   wsMaybeBroadcastSensors();
 }
@@ -2596,8 +3103,19 @@ void processPotentiometerMapping() {
   } else if (potMappingMode == PM_SERVO) {
     // Map to Servo angle (0-180)
     potMappedValue = map(rawPotValue, 0, 4095, 0, 180);
-    servoPosition = potMappedValue;
-    writeServo(servoPosition);
+    if (isServoStepActive(servoOwner) || servoMappingRuleIndex() >= 0) {
+      servoMappingTarget = potMappedValue;
+      servoMappingMoving = false;
+      servoMappingWasPaused = true;
+      return;
+    }
+    if (servoMappingWasPaused || abs(potMappedValue - servoMappingTarget) >= 3) {
+      servoMappingTarget = potMappedValue;
+      servoMappingStart = servoPosition;
+      servoMappingStartMs = millis();
+      servoMappingMoving = true;
+      servoMappingWasPaused = false;
+    }
   }
 }
 
@@ -2715,6 +3233,44 @@ void updateLCD() {
   }
 }
 
+void saveServoOptions(int index) {
+  SequenceServoExtension ext = {};
+  ext.version = 2;
+  memcpy(ext.steps, servoStepOptions[index], sizeof(ext.steps));
+  String key = "seqv_" + String(index);
+  bool hasOptions = false;
+  for (int j = 0; j < sequences[index].stepCount; j++) {
+    if (sequences[index].steps[j].action == SA_SERVO_MOVE &&
+        (ext.steps[j].relative || ext.steps[j].movementMs || ext.steps[j].sweep)) hasOptions = true;
+  }
+  if (!hasOptions) { preferences.remove(key.c_str()); return; }
+  preferences.putBytes(key.c_str(), &ext, sizeof(ext));
+}
+
+void loadServoOptions(int sourceIndex, int targetIndex) {
+  memset(servoStepOptions[targetIndex], 0, sizeof(servoStepOptions[0]));
+  SequenceServoExtension ext = {};
+  String key = "seqv_" + String(sourceIndex);
+  size_t length = preferences.getBytesLength(key.c_str());
+  if (length == sizeof(SequenceServoExtensionV1)) {
+    SequenceServoExtensionV1 legacy = {};
+    if (preferences.getBytes(key.c_str(), &legacy, sizeof(legacy)) != sizeof(legacy) || legacy.version != 1) return;
+    for (int j = 0; j < 10; j++) {
+      servoStepOptions[targetIndex][j].relative = legacy.steps[j].relative == 1;
+      servoStepOptions[targetIndex][j].movementMs = min(legacy.steps[j].movementMs, (uint32_t)3600000);
+    }
+  } else if (length == sizeof(ext) &&
+      preferences.getBytes(key.c_str(), &ext, sizeof(ext)) == sizeof(ext) && ext.version == 2) {
+    for (int j = 0; j < 10; j++) {
+      ServoStepOptions &options = servoStepOptions[targetIndex][j];
+      options.sweep = ext.steps[j].sweep == 1 || ext.steps[j].sweep == 2 ? ext.steps[j].sweep : 0;
+      options.relative = !options.sweep && ext.steps[j].relative == 1;
+      options.movementMs = min(ext.steps[j].movementMs, (uint32_t)3600000);
+      options.startAngle = min(ext.steps[j].startAngle, (uint8_t)180);
+    }
+  }
+}
+
 void saveSequenceConditionExtension(Sequence &seq, int index) {
   SequenceConditionExtension ext = {
       1,
@@ -2788,6 +3344,7 @@ void saveSequences() {
         Serial.printf("[NVS SAVE] Removed %s\n", key.c_str());
       }
       removeSequenceConditionExtension(i);
+      preferences.remove(("seqv_" + String(i)).c_str());
     }
   }
 
@@ -2833,6 +3390,7 @@ void saveSequences() {
                     key.c_str(), seq.name, seq.stepCount, (unsigned)compactSize);
     }
     saveSequenceConditionExtension(seq, i);
+    saveServoOptions(i);
   }
 }
 
@@ -2926,7 +3484,8 @@ void loadSequences() {
               preferences.getBool(msKey.c_str(), false);
         }
       }
-      loadSequenceConditionExtension(sequences[sequenceCount], sequenceCount);
+      loadSequenceConditionExtension(sequences[sequenceCount], i);
+      loadServoOptions(i, sequenceCount);
 
       sequenceCount++;
     }
@@ -2961,6 +3520,7 @@ void loadSequences() {
     String msKey = "seqms_" + String(i);
     String conditionKey = "seqc_" + String(i);
     if (i >= sequenceCount) {
+      preferences.remove(("seqv_" + String(i)).c_str());
       if (preferences.isKey(key.c_str())) {
         Serial.printf("[NVS CLEANUP] Removing orphaned %s\n", key.c_str());
         preferences.remove(key.c_str());
@@ -3165,9 +3725,18 @@ void processSequences() {
 
       // --- STEP EXECUTION (shared by all modes) ---
       unsigned long currentTime = millis();
-      unsigned long stepDelay = seq.steps[seq.currentStep].delayMs;
+      bool servoStep = seq.steps[seq.currentStep].action == SA_SERVO_MOVE;
+      if (servoStep) {
+        if (!executeSequenceStepWithPriority(seq.steps[seq.currentStep], deviceLocked, i, conditionOwners))
+          continue;
+        ServoStepRuntime &run = servoStepRuntime[i];
+        uint32_t total = servoMovementDuration(i, seq.currentStep) + seq.steps[seq.currentStep].delayMs;
+        if (run.elapsedMs < total) continue;
+      }
+      unsigned long stepDelay = servoStep ? 0 : seq.steps[seq.currentStep].delayMs;
       if (currentTime - seq.lastStepTime >= stepDelay) {
         // Advance to next step
+        resetServoStep(i);
         int prevStep = seq.currentStep;
         seq.currentStep++;
         Serial.printf(
@@ -3280,8 +3849,7 @@ void executeSequenceStep(SequenceStep step) {
     setRelayWithDelay(false);
     break;
   case SA_SERVO_MOVE:
-    servoPosition = constrain(value, 0, 180);
-    writeServo(servoPosition);
+    // Servo actions execute only through beginServoStep(), with rule ownership.
     break;
   case SA_LCD_DISPLAY:
     if ((SeqLcdMode)step.lcdMode == SLM_LCD_DEFAULT) {
@@ -3394,6 +3962,7 @@ bool executeSequenceStepWithPriority(SequenceStep step, bool deviceLocked[],
   if (dev >= 0 && dev < 6 && conditionOwners != nullptr &&
       conditionOwners[dev] >= 0 && conditionOwners[dev] != sequenceIndex)
     return false; // A finishing condition step owns its dwell time
+  if (step.action == SA_SERVO_MOVE) return beginServoStep(sequenceIndex);
   executeSequenceStep(step);
   return true;
 }

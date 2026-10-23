@@ -1,5 +1,5 @@
 #pragma once
-// v2.3
+// v2.7
 #include <Arduino.h>
 
 enum SeqAction : uint8_t {
@@ -118,4 +118,50 @@ struct SequenceConditionExtension {
   uint8_t operator4;
   float threshold4;
   uint8_t conditionOperator;
+};
+
+// Companion records: never resize SequenceStep/Sequence (legacy binary NVS).
+struct ServoStepOptionsV1 {
+  uint8_t relative;
+  uint32_t movementMs;
+};
+
+struct SequenceServoExtensionV1 {
+  uint8_t version;
+  ServoStepOptionsV1 steps[10];
+};
+
+struct ServoStepOptions {
+  uint8_t relative;
+  uint32_t movementMs;
+  uint8_t sweep; // 0: current position, 1: start -> destination, 2: return to start
+  uint8_t startAngle;
+};
+
+struct SequenceServoExtension {
+  uint8_t version;
+  ServoStepOptions steps[10];
+};
+
+struct ServoMappingConfig {
+  uint8_t version = 1;
+  uint8_t sensor = SS_SOIL;
+  float inputMin = 0;
+  float inputMax = 100;
+  uint8_t angleMin = 0;
+  uint8_t angleMax = 180;
+  uint8_t inverted = 0;
+  uint8_t deadband = 3;
+  uint8_t smoothing = 35; // Percent of the new sample used by the EMA.
+};
+
+struct ServoStepRuntime {
+  int step = -1;
+  bool started = false;
+  int startAngle = 0;
+  int targetAngle = 0;
+  int departureAngle = 0;
+  bool returning = false;
+  uint32_t elapsedMs = 0;
+  uint32_t resumeMs = 0;
 };

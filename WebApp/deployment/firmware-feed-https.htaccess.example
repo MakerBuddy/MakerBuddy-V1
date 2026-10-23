@@ -1,0 +1,11 @@
+# Merge this exclusion into the EXISTING HTTPS -> HTTP redirect rule.
+# Place it with that rule's other RewriteCond lines, immediately before RewriteRule.
+# Do not create a new redirect rule or replace the site's existing .htaccess.
+RewriteCond %{REQUEST_URI} !^/firmware\.json$ [NC]
+
+# If the host has no existing CORS header for the feed, add this separately.
+<IfModule mod_headers.c>
+    <Files "firmware.json">
+        Header always set Access-Control-Allow-Origin "*"
+    </Files>
+</IfModule>

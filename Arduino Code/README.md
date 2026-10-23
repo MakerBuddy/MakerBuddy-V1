@@ -1,6 +1,33 @@
 # MakerBuddy Arduino Code
 
-MakerBuddy ESP32 firmware v2.3 with WebSocket server, sensor management, and sequence-based automation engine.
+MakerBuddy ESP32 firmware v2.10 with WebSocket server, sensor management, and sequence-based automation engine.
+
+## Rule status updates — v2.10 (23 October 2026)
+
+- Push the existing `q` rule list to every connected client whenever a rule starts, finishes or stops on its own (No Loop completion, Condition start/stop) and after REST rule changes, at most once per second. Previously `q` was sent only on connect and after WebSocket `X` commands, so dashboards kept showing “▶️ Running” and kept manual controls locked. No new message type: older clients already apply `q` at any time.
+- Start on a Condition rule (WebSocket `X a=2` or REST `action=start`) now clears the manual stop and resumes monitoring with a fresh condition debounce. The first cycle begins at step 0 through the priority engine once the condition is true; while it is false nothing runs. Previously the rule was marked running mid-cycle, so step 0 was skipped (or steps 1+ ran once when the condition was false). Non-condition starts are unchanged.
+- Timer intervals are parsed as unsigned 32-bit values over WebSocket and REST, so the dashboards' 999 h maximum is stored as sent instead of becoming 0 ms (WebSocket) or saturating near 596 h (REST).
+- GPIO assignments, NVS layouts and protocol keys are unchanged.
+
+## Servo mapping rule locks — v2.9 (30 September 2026)
+
+- Disable Servo Mapping sensor/inversion controls and the potentiometer Servo option while an enabled, running rule contains a servo step, including timer waits and non-servo steps. Enabled condition rules also reserve mapping while monitoring.
+- Firmware 2.9 pauses existing sensor/pot servo mapping throughout that reservation, holds the last angle, and rejects mapping enables through REST/WebSocket. Stop, disable, delete or one-shot completion releases it; an existing mapping resumes smoothly.
+- None and unrelated potentiometer targets remain available subject to their own rule locks. Saved mapping settings and rule-to-rule step priority are preserved.
+
+## Servo PWM isolation — v2.8 (30 September 2026)
+
+- Reserve ESP32 LEDC channel 8 in a separate timer bank for the servo on GPIO 19. RGB and single-LED automatic channels remain in the other bank.
+- Prevent the timer sharing possible with automatic channel allocation on earlier Arduino-ESP32 3.x cores; a separate pin/channel alone does not isolate PWM timers.
+- Keep the 50 Hz, 16-bit, 500–2500 µs signal holding the last commanded angle after a rule ends or enters its timer interval. Relative +10° from 73° remains 83° with mappings/other servo commands absent.
+- Report a PWM attachment failure on Serial. GPIO assignments, protocol, rule priority, movement modes, and stored rule formats are unchanged.
+
+## Servo rule movements — v2.7 (30 September 2026)
+
+- Fix servo movement dropdown and duration controls with matching themed fields, visible labels, touch-sized inputs, and a stacked narrow layout.
+- Add one-way Start → destination and Start → destination → start movements with bounded 0–180° angles, duration per direction, and hold after the complete movement. Choose Forever to repeat continuously.
+- Firmware 2.7 is required for sweeps. Each cycle positions at the configured start angle first; one-way repeats reposition at start. A 0 ms return settles at start. These are positional servo movements within 0–180°, not unrestricted motor rotation.
+- Preserve rule priority and non-blocking motion. Version-2 `seqv_N` companion records load version-1 records without changing legacy `Sequence` or `SequenceStep` layouts.
 
 ## 📋 Overview
 
@@ -17,6 +44,31 @@ This Arduino sketch provides a complete IoT solution for the MakerBuddy kit, fea
 The canonical runtime version is `FIRMWARE_VERSION` in `MakerBuddy.ino`; its
 source header, `MakerBuddyTypes.h`, this README, and `ARCHITECTURE.md` must stay
 aligned for every firmware release.
+
+## Servo direction fix — v2.6 (30 September 2026)
+
+- Fix downward servo interpolation: unsigned elapsed time no longer wraps a negative angle change and drives the servo to 180°.
+- LDR and other sensor mappings keep responding as readings rise and fall, including with inversion. The shared fix also covers potentiometer mapping and smooth absolute/relative rule steps.
+- No protocol, GPIO, mapping defaults, or persisted record changes. Existing browser and mobile clients use the corrected firmware behavior.
+
+## Simple Servo Mapping — v2.5 (30 September 2026)
+
+- A separate Servo Mapping card contains a compact sensor dropdown (None, soil moisture, gas, light, DHT11 temperature, DS18B20 temperature, humidity) and Invert direction. Changes apply immediately; None releases sensor mapping for manual control.
+- Sensor ranges automatically translate to 0–180°: percentages use 0–100, DHT11 uses 0–50°C, and DS18B20 uses -55–125°C. Potentiometer, motion, push button, and distance are excluded from this dropdown.
+- Smoothing and deadband use built-in defaults. Rules retain priority, invalid or stale readings hold position, and mapping remains disabled after reboot.
+- Browser and mobile demos continuously translate their displayed sensor readings. Card visibility is independently configurable.
+
+## Servo automation — v2.4 (30 September 2026)
+
+- Map soil moisture, gas, light, DHT11 temperature, DS18B20 temperature, or humidity to a bounded servo range, with inversion, EMA smoothing, and deadband.
+- Create absolute or relative servo rule steps with non-blocking movement duration and a separate hold time; targets clamp to 0–180°.
+- Firmware arbitrates servo ownership across rules, sensor mapping, potentiometer mapping, and manual commands. Invalid/stale mapping readings hold position.
+- Mapping settings persist but mapping remains disabled after restart. Existing rule records retain their byte layout; versioned companion records store new servo options.
+- New mapping and movement options require firmware 2.4. No additional robotics features are included.
+
+DS18B20 conversions now run asynchronously to avoid blocking servo interpolation.
+Smooth movement uses an approximately 20 ms loop update opportunity; legacy buzzer
+pulses, ultrasonic timeout, provisioning, and OTA can still delay loop work.
 
 ## 🆕 What's New in v2.1
 
@@ -106,7 +158,7 @@ WiFi, Wire, Preferences, DNSServer, Ticker, HTTPClient, Update, ESPmDNS
 ```
 ESPAsyncWebServer by me-no-dev
 AsyncTCP by me-no-dev
-ArduinoJson by Benoit Blanchon (v6.x)
+ArduinoJson by Benoit Blanchon (v6.x API; compiles with the installed 7.4.2)
 OneWire by Paul Stoffregen
 DallasTemperature by Miles Burton
 Adafruit Unified Sensor by Adafruit
@@ -279,7 +331,7 @@ Parameters:
   action: add/delete/start/stop/toggle
   For add: name, enabled, loopMode, autostart, stepCount, timerType?, loopDuration?,
            loopSensor?, loopOperator?, loopThreshold?, loopUseRange?, ...,
-           step0_action, step0_value, step0_delay, step0_lcdMode?, step0_lcdText1?, step0_lcdText2?, ...
+           step0_action, step0_value, step0_delay, step0_relative?, step0_movementMs?, step0_sweep?, step0_startAngle?, step0_lcdMode?, step0_lcdText1?, step0_lcdText2?, ...
   For others: index
 ```
 
@@ -295,6 +347,8 @@ The WebSocket server at `/ws` uses compact single-letter JSON keys for efficienc
 | `f` | `{m:"f", fv, oi, op}` | Firmware info on connect |
 | `q` | `{m:"q", sq:[{i, e, n, lm, tt, ld, lr, lo, lt, rg, ro, o2, t2, ms, rn, as, st:[{a, v, d, lm?, t1?, t2?}]}]}` | Sequence state sync |
 | `s` | `{m:"s", te, hu, d8, li, po, ga, sm, sr, di, md, bp, ls, lp, lb, r:[r,g,b], rs, sp, lm, fh, pm, pv}` | Sensor data push (every 2s) |
+| `j` | `{m:"j", sc, so, si, ss, tg, sv}` | Servo ownership and mapping settings on connect; these fields also appear in `s` |
+| `e` | `{m:"e", error}` | Mapping validation or manual servo ownership rejection |
 | `m` | `{m:"m", d, w}` | Soil calibration confirmation |
 
 ### Client → Server Commands
@@ -308,9 +362,29 @@ The WebSocket server at `/ws` uses compact single-letter JSON keys for efficienc
 | `Z` | Buzzer | `{m:"Z", s:1}` |
 | `D` | LCD | `{m:"D", md:0\|1, t1, t2}` |
 | `P` | Pot Mapping | `{m:"P", md:0\|1\|2\|3}` |
+| `J` | Sensor Servo Mapping | `{m:"J", en, sn, il, ih, al, ah, iv, db, sm}` |
 | `M` | Soil Calibration | `{m:"M", d?, w?}` |
 | `O` | OTA Update | `{m:"O", u:"firmware_url"}` |
 | `X` | Sequences | `{m:"X", a:0-4, i?, s?}` |
+
+Incoming WebSocket text frames are limited to 4096 bytes. Servo steps may add
+`rv:1` for a relative angle and `mv` for movement duration (0–3600000 ms).
+Firmware 2.7 advertises `sc:1` for start/destination sweeps: `sw:1` means one
+way, `sw:2` means return, `sa` is start (0–180°), and `v` is destination.
+`mv` applies to each direction and `d` holds after the entire movement. Each
+cycle positions at start first. Forever repeats within 0–180°; one-way cycles
+reposition to start. Zero-duration return settles at start. Sweeps force `rv:0`.
+REST form equivalents are `stepN_sweep` and `stepN_startAngle`.
+`d` remains the delay for other actions and is the hold after arrival for servo
+steps. Missing `rv`/`mv` preserves legacy absolute instant behavior.
+
+`POST /api/servomapping` accepts the same numeric mapping fields as form body
+parameters. A simple `{m:"J", en:1, sn:5, iv:0}` command uses automatic input
+limits and a 0–180° output; optional legacy ranges remain supported.
+`sn` is 0 DHT temperature, 1 humidity, 2 DS18B20, 3 light, 4 gas,
+or 5 soil. `il/ih` are input limits, `al/ah` angle limits, `iv` inversion,
+`db` deadband (1–10°), and `sm` new-sample weight (1–100%). `en` enables the
+mapping. REST `/api/servo` returns 409 while a rule or mapping owns the servo.
 
 ## 🤖 Sequence Engine (v2.0)
 
@@ -408,6 +482,8 @@ again in REST/WebSocket responses.
 - **Orphan cleanup** — stale `seq_N` and `seqms_N` keys for unused slots are automatically removed on boot
 - Legacy blob format (`seqBlob`) automatically migrated to compact format on first boot
 - Runtime state (running/stopped, current step, timers) is sanitized on load
+- Version-2 `seqv_N` companion records preserve relative/movement/sweep/start settings and read version-1 records without resizing legacy structs. Missing companions load as absolute/instant; unused companions are removed.
+- `servoMap` preserves mapping ranges and filtering options. Sensor mapping and pot mapping always start disabled after boot.
 
 ## 🔆 Potentiometer Mapping
 
@@ -577,7 +653,11 @@ Connect with MakerBuddy:
 
 ## 📝 Version History
 
-### v2.1 (Current)
+### v2.6 (Current)
+- Fix downward sensor/pot servo mapping and smooth rule movement getting clamped to 180°
+- Regression tests cover repeated sensor reversals, default LDR smoothing/inversion, and descending absolute/relative rules
+
+### v2.1
 - Condition steps retain current-actuator ownership while finishing their dwell
 - Blocked condition rules retry without starting or consuming their step delay
 - Opposing actuator rules therefore respect the active step's minimum duration

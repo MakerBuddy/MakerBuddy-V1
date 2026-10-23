@@ -1,11 +1,11 @@
 /*
- * MakerBuddy V2.6 - Web Dashboard Styles
+ * MakerBuddy V3.5 - Web Dashboard Styles
  *
  * Copyright (C) 2024 Muhammad Afzal
  * Website: https://makerbuddy.cc
  * Email: info@makerbuddy.cc
- * Version: 2.6
- * Release Date: 1 September 2026
+ * Version: 3.5
+ * Release Date: 23 October 2026
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -922,6 +922,11 @@ tbody tr:hover {
     color: var(--danger-color);
 }
 
+.badge-secondary {
+    background: rgba(107, 114, 128, 0.15);
+    color: var(--text-secondary);
+}
+
 /* Form Styles */
 .form-grid {
     display: grid;
@@ -1180,6 +1185,31 @@ tbody tr:hover {
 /* Utility Classes */
 .hidden {
     display: none !important;
+}
+
+.demo-connect-hint {
+    margin-top: 14px !important;
+    color: var(--text-primary) !important;
+}
+
+.demo-connect-hint code {
+    padding: 2px 7px;
+    border-radius: 6px;
+    background: var(--bg-secondary);
+    color: var(--primary-color);
+    font-weight: 800;
+}
+
+.demo-data-banner {
+    margin: 0 0 18px;
+    padding: 11px 16px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--primary-color), #7c3aed);
+    color: #fff;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 800;
+    box-shadow: var(--shadow-sm);
 }
 
 .text-center {
@@ -1792,3 +1822,82 @@ textarea:focus-visible {
 .firmware-notice-notes { margin: 0 0 22px; padding: 12px; border-radius: 10px; background: var(--bg-secondary); color: var(--text-secondary); white-space: pre-wrap; text-align: left; }
 .firmware-notice-action { width: 100%; }
 .firmware-notice-reminder { margin: 14px 0 0 !important; font-size: 12px; }
+
+/* Servo mapping and rule movement controls. */
+.servo-mapping-panel { margin-top: 12px; }
+.servo-mapping-label { display: block; margin-bottom: 6px; font-size: 13px; color: var(--text-primary); }
+.servo-mapping-panel select { width: 100%; min-width: 0; min-height: 44px; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary); background: var(--bg-primary); font: inherit; font-size: 13px; }
+.servo-mapping-invert { display: flex; align-items: center; gap: 8px; min-height: 44px; margin-top: 4px; font-size: 13px; color: var(--text-primary); cursor: pointer; }
+.servo-mapping-invert input { flex-shrink: 0; width: 18px; height: 18px; accent-color: var(--accent-color); }
+.servo-mapping-panel select:disabled, .servo-mapping-invert:has(input:disabled) { opacity: .5; cursor: default; }
+.step-item input, .step-item select { min-width: 0; box-sizing: border-box; }
+@media (max-width: 600px) { .step-item > div[style*="grid-template-columns"] { grid-template-columns: 1fr !important; } }
+
+/* Rule servo controls share the dashboard's form styling. */
+.servo-step-fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+    padding: 14px;
+    border: 2px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--bg-secondary);
+}
+.servo-step-fields label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+}
+.servo-step-fields input, .servo-step-fields select {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    min-height: 46px;
+    padding: 12px;
+    border: 2px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 14px;
+}
+.servo-step-fields select { cursor: pointer; }
+.servo-step-fields input:focus-visible, .servo-step-fields select:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+.servo-hint { margin: 10px 0 0; color: var(--text-secondary); font-size: 12px; line-height: 1.6; }
+.step-main-servo input { box-sizing: border-box; min-width: 0; }
+.step-main-servo > div { min-width: 0; }
+@media (max-width: 600px) {
+    .step-main-fields.step-main-servo { grid-template-columns: minmax(0, 1fr) !important; }
+    .servo-step-fields { grid-template-columns: minmax(0, 1fr); padding: 12px; }
+}
+
+/* Rule editor ordering controls */
+#addStepBtn { margin-top: 16px; }
+.step-order-controls { display: flex; gap: 6px; margin-left: auto; margin-right: 8px; }
+.step-order-controls button { min-width: 40px; min-height: 40px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); font-size: 20px; cursor: pointer; }
+.step-order-controls button:disabled { opacity: .35; cursor: default; }
+.step-order-controls .step-drag-handle { cursor: grab; touch-action: none; user-select: none; }
+.step-order-controls button:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 2px; }
+.step-item.step-dragging { opacity: .65; }
+.step-item.step-drop-target { border-color: var(--primary-color) !important; }
+@media (max-width: 480px) {
+    .step-item > div:first-child { flex-wrap: wrap; gap: 8px; }
+    .step-order-controls { margin-left: 0; }
+}
+
+/* Keep duplicate actions inside the rules table at narrow widths. */
+#sequencesTab .action-buttons, #sequences .action-buttons { flex-wrap: wrap; justify-content: center; }
+#sequencesTab .rule-table-card, #sequencesTab .table-container, #sequences .rule-table-card, #sequences .table-container { min-width: 0; max-width: 100%; }
+#sequencesTab .table-container, #sequences .table-container { overflow-x: auto; }
+@media (max-width: 480px) {
+    .tab-buttons, .tabs { overflow-x: auto; }
+    .tab-buttons .tab-btn, .tabs .tab-btn { flex: 0 0 auto; }
+}

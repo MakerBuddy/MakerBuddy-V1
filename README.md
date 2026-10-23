@@ -8,7 +8,7 @@ use real-time WebSocket communication for monitoring and control. The
 sequence-based automation engine supports four loop modes: None, Forever,
 Timer (interval-only), and Condition.
 
-Current releases (1 September 2026): **firmware 2.3** and **WebApp 2.6**.
+Current releases (23 October 2026): **firmware 2.10** and **WebApp 3.5**.
 
 This public repository contains the open-source Arduino firmware, WebApp, and
 PCB design files. Other MakerBuddy clients are maintained separately and are
@@ -119,6 +119,97 @@ We welcome contributions. Feel free to report bugs, suggest features, submit
 pull requests, and share projects built with MakerBuddy.
 
 ## 📝 Release Notes
+
+### Rule status and control fixes — 23 October 2026
+
+**Firmware 2.10 / WebApp 3.5**
+
+- Firmware 2.10 pushes the rule list to connected dashboards whenever a rule starts, finishes or stops on its own (at most once per second, and the final state always arrives), so "▶️ Running" badges and automation locks no longer go stale.
+- Start on a Condition rule resumes monitoring and begins its first cycle at step 0 once the condition is true; if the condition is false, nothing runs.
+- Timer intervals up to the dashboard's 999 h maximum are stored correctly.
+- WebApp 3.5 sends LED brightness 0 as 0 (it previously meant full brightness), keeps the LED slider locked while a rule owns the LED, fixes two operator labels and styles the Stopped rule badges.
+
+### GitHub firmware feed — 30 September 2026
+
+**WebApp 3.4**
+
+- Check for firmware updates and release notices through the [public raw GitHub feed](https://raw.githubusercontent.com/MakerBuddy/MakerBuddy-Firmware-OTA/main/firmware.json). Download links the device cannot install over the air are shown as requiring manual installation. See [WebApp/deployment](./WebApp/deployment/README.md).
+- Firmware remains 2.9.
+
+### Rule editor and firmware checks — 30 September 2026
+
+**WebApp 3.3**
+
+- Add Boolean condition selectors, rule duplication, step drag/reorder controls, clearer Add Step spacing, and clearer firmware-feed checks. Firmware remains 2.9.
+
+### Servo mapping rule locks — 30 September 2026
+
+**Firmware 2.9 / WebApp 3.2**
+
+- Disable the Servo Mapping sensor/inversion controls and the potentiometer Servo option while an enabled, running rule contains a servo step, including timer waits and non-servo steps. Enabled condition rules also reserve mapping while monitoring.
+- Firmware 2.9 pauses existing sensor/pot servo mapping throughout that reservation, holds the last angle, and rejects mapping enables through REST/WebSocket. Stop, disable, delete or one-shot completion releases it; an existing mapping resumes smoothly.
+- None and unrelated potentiometer targets remain available subject to their own rule locks. Saved mapping settings and rule-to-rule step priority are preserved.
+
+### Servo PWM isolation — 30 September 2026
+
+**Firmware 2.8**
+
+- Reserve a separate ESP32 LEDC timer bank for servo PWM to prevent sharing with RGB/single-LED outputs on earlier Arduino-ESP32 3.x cores.
+- Preserve the commanded endpoint during holds and timer intervals; log PWM initialization failures. Protocol and saved rule formats are unchanged.
+
+### Servo movement names — 30 September 2026
+
+**WebApp 3.1**
+
+- Rename servo movement choices to Range and Range + reverse; stored modes and timing are preserved.
+
+### Servo rule movements — 30 September 2026
+
+**Firmware 2.7 / WebApp 3.0**
+
+- Style the servo movement selector and duration fields consistently with the rule editor; stack fields on phone layouts and support both themes.
+- Add one-way Start → destination and Start → destination → start movements, duration per direction, and hold after the entire movement. Select Forever to repeat within 0–180°.
+- Each cycle positions at start first; one-way repeats reposition to start. Zero-duration return settles at start. New movement options require firmware 2.7.
+- Keep motion non-blocking and respect rule priority. Version-2 servo companion records read older version-1 options without resizing the legacy rule structs.
+
+
+### 30 September 2026 — Servo Direction Fix
+
+**Firmware 2.6**
+
+- Fix downward servo movement wrapping through unsigned timer arithmetic and getting clamped to 180°.
+- Sensor mappings, including inverted LDR mapping, keep responding to rising and falling readings. The fix also covers potentiometer mapping and smooth absolute/relative rule steps.
+- Existing WebApp commands, mapping defaults, GPIO assignments, protocol, and saved configurations remain compatible.
+
+### 30 September 2026 — Compact Servo Mapping
+
+**Firmware 2.5 / WebApp 2.9**
+
+- Add a separate Servo Mapping card with a compact sensor dropdown and Invert direction. Select None to disable mapping; changes apply immediately.
+- Map soil moisture, gas, light, humidity, DHT11, or DS18B20 automatically to 0–180°. Potentiometer, motion, push button, and distance are excluded from the dropdown.
+- Use automatic sensor ranges and built-in filtering; preserve rule ownership, stale/invalid holds, and disabled mapping after reboot.
+- Keep demo servo motion aligned with the currently displayed sensor reading and allow independent mapping-card visibility.
+- Preserve legacy explicit mapping ranges and binary NVS layouts.
+
+
+### 30 September 2026
+
+**Firmware 2.4 / WebApp 2.8**
+
+- Add sensor-to-servo mapping for soil moisture, gas, light, DHT11 temperature, DS18B20 temperature, and humidity, with input/output limits, inversion, smoothing, and deadband.
+- Add absolute/relative servo rule steps, non-blocking smooth movement duration, and hold after arrival.
+- Enforce servo ownership across rules, sensor mapping, potentiometer mapping, and manual commands; pause invalid/stale sensor mapping.
+- Preserve existing binary rule records with versioned companion options. Mapping settings persist but mapping starts disabled after reboot.
+- Run DS18B20 conversions asynchronously to keep smooth motion responsive.
+
+
+### 22 September 2026
+
+**WebApp 2.7**
+
+- Adds a hardware-free demo session when `demo` is entered as the device host.
+- Shows animated sample telemetry, locally responsive controls, device/settings data, and example rules.
+- Clearly labels demo data and prevents example-rule changes from being stored.
 
 ### 1 September 2026
 
