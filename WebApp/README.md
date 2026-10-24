@@ -359,7 +359,7 @@ All settings are stored in `localStorage` under key `dashboardSettings`:
 Tested and working on:
 - ⚠️ Firefox — requires [MakerBuddy Firefox Add-on](https://addons.mozilla.org/en-US/firefox/addon/makerbuddy-iot-controller/) for full functionality
 - ✅ Safari (v14+)
-- ✅ Edge (v90+)
+- ⚠️ Edge — requires [MakerBuddy Edge Add-on](https://microsoftedge.microsoft.com/addons/detail/makerbuddy-iot-controller/mpdchgbjmkkjcecfmoophpccabndbdhb) for full functionality
 - ✅ Opera (v76+)
 - ⚠️ Chrome — requires [MakerBuddy Chrome Extension](https://chromewebstore.google.com/detail/makerbuddy-iot-controller/jdhfgbalmimccengljapbgfoaldmleah) for full functionality
 

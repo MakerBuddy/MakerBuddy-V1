@@ -96,6 +96,31 @@
         <p class="chrome-modal-note">Free &bull; No account required &bull; Works with MakerBuddy IoT Kit</p>
     </div>
 
+    <!-- Edge Add-on Redirect Modal (blocks Microsoft Edge users) -->
+    <div class="edge-modal-backdrop" id="edgeModalBackdrop"></div>
+    <div class="edge-modal" id="edgeModal">
+        <div class="chrome-modal-icon">🌀</div>
+        <h2 class="chrome-modal-title">Better Experience Available!</h2>
+        <p class="chrome-modal-desc">
+            We detected you are using <strong>Microsoft Edge</strong>.<br>
+            The WebApp does not work properly on Edge. Please install the
+            <strong>MakerBuddy Edge Add-on</strong> for the best experience
+            controlling your MakerBuddy IoT Kit.
+        </p>
+        <div class="chrome-modal-features">
+            <div class="chrome-modal-feature"><span>✓</span> Faster device connection</div>
+            <div class="chrome-modal-feature"><span>✓</span> Native browser integration</div>
+            <div class="chrome-modal-feature"><span>✓</span> One-click access from toolbar</div>
+            <div class="chrome-modal-feature"><span>✓</span> Works with all MakerBuddy IoT Kits</div>
+        </div>
+        <a href="https://microsoftedge.microsoft.com/addons/detail/makerbuddy-iot-controller/mpdchgbjmkkjcecfmoophpccabndbdhb"
+            target="_blank" rel="noopener noreferrer" class="chrome-modal-btn">
+            <span class="chrome-modal-btn-icon">🌀</span>
+            Install MakerBuddy Edge Add-on
+        </a>
+        <p class="chrome-modal-note">Free &bull; No account required &bull; Works with MakerBuddy IoT Kit</p>
+    </div>
+
     <!-- Firmware release notice -->
     <div class="firmware-notice-backdrop hidden" id="firmwareNoticeBackdrop"></div>
     <div class="firmware-notice-modal hidden" id="firmwareNoticeModal" role="dialog" aria-modal="true" aria-labelledby="firmwareNoticeTitle">
@@ -1298,12 +1323,16 @@
                 !/OPR/.test(ua) &&
                 !/Brave/.test(ua);
             const isFirefox = /Firefox\/[\d.]+/.test(ua) || /FxiOS\/[\d.]+/.test(ua);
+            const isEdge = /Edg\/[\d.]+/.test(ua);
             if (isChrome) {
                 document.getElementById('chromeModalBackdrop').classList.add('active');
                 document.getElementById('chromeModal').classList.add('active');
             } else if (isFirefox) {
                 document.getElementById('firefoxModalBackdrop').classList.add('active');
                 document.getElementById('firefoxModal').classList.add('active');
+            } else if (isEdge) {
+                document.getElementById('edgeModalBackdrop').classList.add('active');
+                document.getElementById('edgeModal').classList.add('active');
             }
         })();
 

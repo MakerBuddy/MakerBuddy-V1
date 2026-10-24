@@ -1531,13 +1531,16 @@ label:has(input[name="potMapping"]:disabled) { opacity: 0.58; cursor: not-allowe
 /* ─── Browser Extension Redirect Modals ─── */
 .chrome-modal-backdrop,
 .firefox-modal-backdrop,
+.edge-modal-backdrop,
 .chrome-modal,
-.firefox-modal {
+.firefox-modal,
+.edge-modal {
     display: none;
 }
 
 .chrome-modal-backdrop.active,
-.firefox-modal-backdrop.active {
+.firefox-modal-backdrop.active,
+.edge-modal-backdrop.active {
     display: block;
     position: fixed;
     inset: 0;
@@ -1548,7 +1551,8 @@ label:has(input[name="potMapping"]:disabled) { opacity: 0.58; cursor: not-allowe
 }
 
 .chrome-modal.active,
-.firefox-modal.active {
+.firefox-modal.active,
+.edge-modal.active {
     display: flex;
     flex-direction: column;
     align-items: center;
