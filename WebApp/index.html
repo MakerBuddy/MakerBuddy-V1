@@ -5,8 +5,8 @@
   Copyright (C) 2024 Muhammad Afzal
   Website: https://makerbuddy.cc
   Email: info@makerbuddy.cc
-  Version: 3.5
-  Release Date: 23 October 2026
+  Version: 3.6
+  Release Date: 24 October 2026
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="application-version" content="3.5">
+    <meta name="application-version" content="3.6">
     <title>MakerBuddy Web App Dashboard</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
@@ -180,7 +180,7 @@
             <div class="grid-5 mb-20" id="sensorsGrid">
                 <!-- Temperature DHT -->
                 <div class="sensor-card" data-sensor="temp_dht">
-                    <button class="card-info-btn" data-img="images/lecture-images/02-makerbuddy-DHT.png" data-title="DHT Sensor – Temperature &amp; Humidity" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
+                    <button class="card-info-btn" data-img="images/lecture-images/02-makerbuddy-DHT" data-title="DHT Sensor – Temperature &amp; Humidity" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
                     <div class="sensor-icon">🌡️</div>
                     <div class="sensor-label">Temperature (DHT)</div>
                     <div class="sensor-value" id="temperature">--</div>
@@ -189,7 +189,7 @@
 
                 <!-- Humidity -->
                 <div class="sensor-card" data-sensor="humidity">
-                    <button class="card-info-btn" data-img="images/lecture-images/02-makerbuddy-DHT.png" data-title="DHT Sensor – Temperature &amp; Humidity" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
+                    <button class="card-info-btn" data-img="images/lecture-images/02-makerbuddy-DHT" data-title="DHT Sensor – Temperature &amp; Humidity" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
                     <div class="sensor-icon">💧</div>
                     <div class="sensor-label">Humidity</div>
                     <div class="sensor-value" id="humidity">--</div>
@@ -198,7 +198,7 @@
 
                 <!-- Temperature DS18B20 -->
                 <div class="sensor-card" data-sensor="temp_ds18b20">
-                    <button class="card-info-btn" data-img="images/lecture-images/01-makerbuddy-DS18B20.png" data-title="DS18B20 Temperature Sensor" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
+                    <button class="card-info-btn" data-img="images/lecture-images/01-makerbuddy-DS18B20" data-title="DS18B20 Temperature Sensor" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
                     <div class="sensor-icon">🌡️</div>
                     <div class="sensor-label">Temperature (DS18B20)</div>
                     <div class="sensor-value" id="ds18b20Temp">--</div>
@@ -207,7 +207,7 @@
 
                 <!-- Light Level -->
                 <div class="sensor-card" data-sensor="light">
-                    <button class="card-info-btn" data-img="images/lecture-images/03-MakerBuddy-On-Board-ldr.png" data-title="LDR Light Sensor (On-Board)" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
+                    <button class="card-info-btn" data-img="images/lecture-images/03-MakerBuddy-On-Board-ldr" data-title="LDR Light Sensor (On-Board)" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
                     <div class="sensor-icon">💡</div>
                     <div class="sensor-label">Light Level</div>
                     <div class="sensor-value" id="lightLevel">--</div>
@@ -216,7 +216,7 @@
 
                 <!-- Gas Level -->
                 <div class="sensor-card" data-sensor="gas">
-                    <button class="card-info-btn" data-img="images/lecture-images/03-makerbuddy-mq-2-smoke-sensor.png" data-title="MQ-2 Gas / Smoke Sensor" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
+                    <button class="card-info-btn" data-img="images/lecture-images/03-makerbuddy-mq-2-smoke-sensor" data-title="MQ-2 Gas / Smoke Sensor" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
                     <div class="sensor-icon">💨</div>
                     <div class="sensor-label">Gas Level (MQ-2)</div>
                     <div class="sensor-value" id="gasLevel">--</div>
@@ -225,7 +225,7 @@
 
                 <!-- Soil Moisture -->
                 <div class="sensor-card" data-sensor="soil">
-                    <button class="card-info-btn" data-img="images/lecture-images/04-makerbuddy-soil-moisture-sensor.png" data-title="Soil Moisture Sensor" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
+                    <button class="card-info-btn" data-img="images/lecture-images/04-makerbuddy-soil-moisture-sensor" data-title="Soil Moisture Sensor" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
                     <button type="button" class="sensor-settings-btn" id="soilMoistureSettingsBtn"
                         title="Calibrate">⚙️</button>
                     <div class="sensor-icon">🌱</div>
@@ -236,7 +236,7 @@
 
                 <!-- Potentiometer -->
                 <div class="sensor-card" data-sensor="pot">
-                    <button class="card-info-btn" data-img="images/lecture-images/06-MakerBuddy-On-Board-Potentiometer.png" data-title="Potentiometer (On-Board)" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
+                    <button class="card-info-btn" data-img="images/lecture-images/06-MakerBuddy-On-Board-Potentiometer" data-title="Potentiometer (On-Board)" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
                     <div class="sensor-icon">🎚️</div>
                     <div class="sensor-label">Potentiometer</div>
                     <div class="sensor-value" id="potValue">--</div>
@@ -245,7 +245,7 @@
 
                 <!-- Distance CM -->
                 <div class="sensor-card" data-sensor="distance">
-                    <button class="card-info-btn" data-img="images/lecture-images/09-makerbuddy-hc-sr04-range-sensor.png" data-title="HC-SR04 Ultrasonic Range Sensor" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
+                    <button class="card-info-btn" data-img="images/lecture-images/09-makerbuddy-hc-sr04-range-sensor" data-title="HC-SR04 Ultrasonic Range Sensor" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
                     <div class="sensor-icon">📏</div>
                     <div class="sensor-label">Distance</div>
                     <div class="sensor-value" id="distanceCm">--</div>
@@ -254,7 +254,7 @@
 
                 <!-- Motion Sensor -->
                 <div class="sensor-card" data-sensor="motion">
-                    <button class="card-info-btn" data-img="images/lecture-images/05-makerbuddy-pir-motion-sensor-hc-sr501.png" data-title="PIR Motion Sensor (HC-SR501)" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
+                    <button class="card-info-btn" data-img="images/lecture-images/05-makerbuddy-pir-motion-sensor-hc-sr501" data-title="PIR Motion Sensor (HC-SR501)" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
                     <div class="sensor-icon">🚶</div>
                     <div class="sensor-label">Motion Sensor</div>
                     <div class="sensor-value" id="motionStatus" style="font-size: 20px;">No Motion</div>
@@ -262,7 +262,7 @@
 
                 <!-- Push Button -->
                 <div class="sensor-card" data-sensor="button">
-                    <button class="card-info-btn" data-img="images/lecture-images/01-MakerBuddy-On-Board-Push-Button.png" data-title="Push Button (On-Board)" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
+                    <button class="card-info-btn" data-img="images/lecture-images/01-MakerBuddy-On-Board-Push-Button" data-title="Push Button (On-Board)" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
                     <div class="sensor-icon">🔘</div>
                     <div class="sensor-label">Push Button</div>
                     <div class="sensor-value" id="buttonStatus" style="font-size: 20px;">Released</div>
@@ -276,7 +276,7 @@
                     <div class="control-header">
                         <div class="control-icon">💡</div>
                         <div class="control-title">LED Control</div>
-                        <button class="card-info-btn" data-img="images/lecture-images/04-MakerBuddy-On-Board-LED.png" data-title="LED (On-Board)" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
+                        <button class="card-info-btn" data-img="images/lecture-images/04-MakerBuddy-On-Board-LED" data-title="LED (On-Board)" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
                     </div>
                     <div class="automation-warning hidden" id="ledWarning">
                         <span style="font-size: 20px;">⚠️</span>
@@ -304,7 +304,7 @@
                     <div class="control-header">
                         <div class="control-icon">🎨</div>
                         <div class="control-title">RGB LED</div>
-                        <button class="card-info-btn" data-img="images/lecture-images/02-MakerBuddy-On-Board-rgb-led.png" data-title="RGB LED (On-Board)" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
+                        <button class="card-info-btn" data-img="images/lecture-images/02-MakerBuddy-On-Board-rgb-led" data-title="RGB LED (On-Board)" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
                     </div>
                     <div class="automation-warning hidden" id="rgbWarning">
                         <span style="font-size: 20px;">⚠️</span>
@@ -335,7 +335,7 @@
                     <div class="control-header">
                         <div class="control-icon">⚡</div>
                         <div class="control-title">Relay</div>
-                        <button class="card-info-btn" data-img="images/lecture-images/07-makerbuddy-single-channel-relay.png" data-title="Single Channel Relay Module" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
+                        <button class="card-info-btn" data-img="images/lecture-images/07-makerbuddy-single-channel-relay" data-title="Single Channel Relay Module" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
                     </div>
                     <div class="automation-warning hidden" id="relayWarning">
                         <span style="font-size: 20px;">⚠️</span>
@@ -358,7 +358,7 @@
                     <div class="control-header">
                         <div class="control-icon">🎚️</div>
                         <div class="control-title">Potentiometer Mapping</div>
-                        <button class="card-info-btn" data-img="images/lecture-images/06-MakerBuddy-On-Board-Potentiometer.png" data-title="Potentiometer (On-Board)" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
+                        <button class="card-info-btn" data-img="images/lecture-images/06-MakerBuddy-On-Board-Potentiometer" data-title="Potentiometer (On-Board)" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
                     </div>
                     <div class="automation-warning hidden" id="potMappingWarning">
                         <span style="font-size: 20px;">⚠️</span>
@@ -425,7 +425,7 @@
                     <div class="control-header">
                         <div class="control-icon">🔧</div>
                         <div class="control-title">Servo Motor</div>
-                        <button class="card-info-btn" data-img="images/lecture-images/06-makerbuddy-sg90-servo-motor.png" data-title="SG90 Servo Motor" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
+                        <button class="card-info-btn" data-img="images/lecture-images/06-makerbuddy-sg90-servo-motor" data-title="SG90 Servo Motor" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
                     </div>
                     <div class="automation-warning hidden" id="servoWarning">
                         <span style="font-size: 20px;">⚠️</span>
@@ -446,7 +446,7 @@
                     <div class="control-header">
                         <div class="control-icon">🔊</div>
                         <div class="control-title">Buzzer</div>
-                        <button class="card-info-btn" data-img="images/lecture-images/05-MakerBuddy-On-Board-Buzzer.png" data-title="Buzzer (On-Board)" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
+                        <button class="card-info-btn" data-img="images/lecture-images/05-MakerBuddy-On-Board-Buzzer" data-title="Buzzer (On-Board)" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
                     </div>
                     <div class="automation-warning hidden" id="buzzerWarning">
                         <span style="font-size: 20px;">⚠️</span>
@@ -463,7 +463,7 @@
                     <div class="control-header">
                         <div class="control-icon">📺</div>
                         <div class="control-title">LCD Display</div>
-                        <button class="card-info-btn" data-img="images/lecture-images/08-makerbuddy-1602-lcd-i2c-interface.png" data-title="1602 LCD with I2C Interface" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
+                        <button class="card-info-btn" data-img="images/lecture-images/08-makerbuddy-1602-lcd-i2c-interface" data-title="1602 LCD with I2C Interface" title="View wiring guide"><i class="bi bi-info-circle"></i></button>
                     </div>
                     <div class="automation-warning hidden" id="lcdWarning">
                         <span style="font-size: 20px;">⚠️</span>
@@ -3521,18 +3521,28 @@
             const titleEl = document.getElementById('cardInfoTitle');
             const imgEl = document.getElementById('cardInfoImg');
 
+            // Each wiring guide has a light and a dark image (<name>-light.webp, <name>-dark.webp).
+            let guideBase = null;
+            function guideSrc(base) {
+                const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+                return `${base}-${theme}.webp`;
+            }
             function openCardInfo(img, title) {
+                guideBase = img;
                 titleEl.textContent = title;
-                imgEl.src = img;
+                imgEl.src = guideSrc(img);
                 imgEl.alt = title;
                 overlay.classList.add('active');
             }
             function closeCardInfo() {
+                guideBase = null;
                 overlay.classList.remove('active');
                 imgEl.src = '';
             }
 
             document.getElementById('cardInfoClose').addEventListener('click', closeCardInfo);
+            new MutationObserver(() => { if (guideBase) imgEl.src = guideSrc(guideBase); })
+                .observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
             overlay.addEventListener('click', e => { if (e.target === overlay) closeCardInfo(); });
             document.addEventListener('keydown', e => { if (e.key === 'Escape') closeCardInfo(); });
 

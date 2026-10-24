@@ -1,6 +1,12 @@
 # MakerBuddy Web Dashboard
 
-A modern, responsive WebSocket dashboard for MakerBuddy. Current WebApp version: **3.5**.
+A modern, responsive WebSocket dashboard for MakerBuddy. Current WebApp version: **3.6**.
+
+## Wiring guide images — v3.6 (24 October 2026)
+
+- Every component wiring guide (the ⓘ button on each sensor and control card) shows the new IoT Kit V1.0 photography: the green board with the part highlighted, or the module with its lead to the right port.
+- Each guide has a light and a dark image, and the popup shows the one for the current theme. Toggling the theme while a guide is open swaps it.
+- The images are WebP, 1200 px wide. No protocol, DOM ID or setting changed.
 
 ## Rule status and control fixes — v3.5 (23 October 2026)
 

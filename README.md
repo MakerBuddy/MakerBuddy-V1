@@ -8,7 +8,7 @@ use real-time WebSocket communication for monitoring and control. The
 sequence-based automation engine supports four loop modes: None, Forever,
 Timer (interval-only), and Condition.
 
-Current releases (23 October 2026): **firmware 2.10** and **WebApp 3.5**.
+Current releases: **firmware 2.10** (23 October 2026) and **WebApp 3.6** (24 October 2026).
 
 This public repository contains the open-source Arduino firmware, WebApp, and
 PCB design files. Other MakerBuddy clients are maintained separately and are
@@ -119,6 +119,14 @@ We welcome contributions. Feel free to report bugs, suggest features, submit
 pull requests, and share projects built with MakerBuddy.
 
 ## 📝 Release Notes
+
+### Wiring guide images — 24 October 2026
+
+**WebApp 3.6**
+
+- Every component wiring guide (the ⓘ button on each sensor and control card) shows new photography of the IoT Kit V1.0: the green board with the part highlighted, or the module with its lead to the right port.
+- Each guide has a light and a dark image, and the popup shows the one for the current theme.
+- Firmware is unchanged at 2.10.
 
 ### Rule status and control fixes — 23 October 2026
 
